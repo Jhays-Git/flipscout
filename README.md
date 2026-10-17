@@ -1,6 +1,6 @@
 # FlipScout
 
-AI-assisted resale price research and deal tracking for small online sellers.
+AI-assisted resale price research and deal tracking for small online sellers. Built for an MGMT 3000 AI project.
 
 **Live site:** https://jhays-git.github.io/flipscout/
 

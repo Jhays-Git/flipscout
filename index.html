@@ -650,7 +650,45 @@ function extractBalanced(text) {
   }
   return { text: text.slice(start), start, end: text.length, complete: false };
 }
+/* Repairs stray quote marks inside text values (an inch mark in 1.5", or a quoted word) so they do not end the string early. */
+function repairQuotes(s) {
+  let out = '', inStr = false;
+  const isValueStart = rest => /^(["{\[\-0-9]|true\b|false\b|null\b)/.test(rest);
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (!inStr) { out += ch; if (ch === '"') inStr = true; continue; }
+    if (ch === '\\') { out += ch + (s[i + 1] === undefined ? '' : s[i + 1]); i++; continue; }
+    if (ch === '\n') { out += '\\n'; continue; }
+    if (ch === '\r') continue;
+    if (ch === '\t') { out += '\\t'; continue; }
+    if (ch === '"') {
+      const rest = s.slice(i + 1).replace(/^\s+/, '');
+      let closes = rest === '' || rest[0] === '}' || rest[0] === ']' || rest[0] === ':';
+      if (!closes && rest[0] === ',') closes = isValueStart(rest.slice(1).replace(/^\s+/, '')) || rest.slice(1).trim() === '';
+      if (closes) { out += '"'; inStr = false; } else out += '\\"';
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+function repairQuotesInText(raw) {
+  const start = raw.search(/[\[{]/);
+  if (start < 0) return raw;
+  const body = raw.slice(start).replace(/[“”„]/g, '"').replace(/[‘’]/g, "'");
+  return raw.slice(0, start) + repairQuotes(body);
+}
 function parseLooseJson(raw) {
+  const r = parseLooseCore(raw);
+  if (r.ok || typeof raw !== 'string' || !raw.trim()) return r;
+  const fixed = repairQuotesInText(raw);
+  if (fixed !== raw) {
+    const r2 = parseLooseCore(fixed);
+    if (r2.ok) { r2.fixes.push('Fixed a stray quote mark inside text (such as an inch mark)'); return r2; }
+  }
+  return r;
+}
+function parseLooseCore(raw) {
   const fixes = [];
   if (typeof raw !== 'string' || !raw.trim()) return { ok: false, error: 'Nothing to read. Paste the AI answer first.', fixes };
   const strict = raw.replace(/^﻿/, '').trim();
@@ -677,7 +715,10 @@ function parseLooseJson(raw) {
   const loose = curly.replace(/\bNaN\b|\bundefined\b/g, 'null');
   r = attempt(loose);
   if (r.ok) { fixes.push('Replaced undefined values with null'); return { ok: true, data: r.data, fixes }; }
-  return { ok: false, error: 'The JSON has a syntax error (' + (r.e && r.e.message ? r.e.message : 'unknown') + '). Ask the AI to fix the JSON and reply with the object only.', fixes };
+  let near = '';
+  const pm = r.e && /position (\d+)/.exec(r.e.message || '');
+  if (pm) { const at = +pm[1]; near = ' Near: "' + loose.slice(Math.max(0, at - 45), at + 25).replace(/\s+/g, ' ') + '".'; }
+  return { ok: false, error: 'The JSON has a syntax error (' + (r.e && r.e.message ? r.e.message : 'unknown') + ').' + near + ' Ask the AI to fix the JSON, remove any quotation marks inside text values, and reply with the object only.', fixes };
 }
 
 /* ============ validation ============ */
@@ -869,7 +910,7 @@ function dealMetrics(d) {
 /* ============ prompts ============ */
 const RESEARCH_TEMPLATE = '{\n  "schema_version": "flipscout-1",\n  "kind": "research",\n  "item": "<the item as you understood it>",\n  "scan_date": "YYYY-MM-DD",\n  "comps": [\n    {\n      "type": "sold" or "active",\n      "source": "<site name, e.g. eBay>",\n      "title": "<listing title>",\n      "url": "<https link, or null>",\n      "price": <number in USD>,\n      "shipping": <number in USD, 0 for free shipping, or null>,\n      "condition": "<text or null>",\n      "variant_match": "exact" or "close" or "different" or "unknown",\n      "date": "<YYYY-MM-DD sold date or listing date, or null>",\n      "notes": "<short note or null>"\n    }\n  ],\n  "risk_flags": ["<one of the allowed flags>"],\n  "agent_notes": "<one or two sentences>",\n  "limitations": "<what you could not find or verify>"\n}';
 const DEALS_TEMPLATE = '{\n  "schema_version": "flipscout-1",\n  "kind": "deals",\n  "scan_date": "YYYY-MM-DD",\n  "deals": [\n    {\n      "item": "<listing title>",\n      "category": ' + CAT_KEYS.map(k => '"' + k + '"').join(' or ') + ',\n      "source": "<site name>",\n      "url": "<https link to the live listing>",\n      "listing_price": <number in USD>,\n      "shipping": <number in USD, 0 for free shipping, or null>,\n      "condition": "<text or null>",\n      "est_resale_price": <number in USD>,\n      "resale_evidence": [\n        { "type": "sold" or "active", "source": "<site name>", "title": "<title>", "url": "<https link or null>", "price": <number>, "shipping": <number or null>, "date": "<YYYY-MM-DD or null>" }\n      ],\n      "confidence": "low" or "medium" or "high",\n      "risk_flags": ["<one of the allowed flags>"],\n      "notes": "<short note or null>",\n      "found_at": "YYYY-MM-DD"\n    }\n  ]\n}';
-const OUTPUT_RULES = 'OUTPUT FORMAT\nReply with ONE JSON object and nothing else. No introduction, no closing remarks, no markdown, no code fences, no citation or footnote markers inside the JSON, straight double quotes only, no trailing commas. Numbers must be plain numbers (24.99, not "$24.99"). Use null for anything you do not know. Follow this shape exactly:\n\n';
+const OUTPUT_RULES = 'OUTPUT FORMAT\nReply with ONE JSON object and nothing else. No introduction, no closing remarks, no markdown, no code fences, no citation or footnote markers inside the JSON, straight double quotes only, no trailing commas. Never put a double quote character inside a text value: write inches as in (for example 1.5 in), spell out feet and inches, and leave out or replace any other quotation marks, so that no backslash escapes are needed. Keep every text value on one line and keep notes to one short sentence. Numbers must be plain numbers (24.99, not "$24.99"). Use null for anything you do not know. Follow this shape exactly:\n\n';
 
 function buildResearchPrompt(catKey, d, cost) {
   const C = CATS[catKey];
