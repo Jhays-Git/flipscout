@@ -426,7 +426,7 @@ let reports = store.get('reports', []);
 let deals = store.get('deals', []);
 let watch = store.get('watchlist', []);
 let draft = store.get('draft', null) || { category: 'laptop', values: {}, cost: '', platform: '' };
-const defaultFilters = () => ({ cat: 'all', source: 'all', status: 'active', minProfit: '', minMargin: '', maxPrice: '', minRating: 'any', conf: 'any', hideRisk: false, within: 'all', q: '', sort: 'profit' });
+const defaultFilters = () => ({ cat: 'all', source: 'all', status: 'active', minProfit: '', minMargin: '', maxPrice: '', minRating: 'any', conf: 'any', hideRisk: false, within: 'all', q: '', sort: 'best' });
 let filters = Object.assign(defaultFilters(), store.get('filters', {}));
 const saveSettings = () => store.set('settings', S);
 const saveReports = () => store.set('reports', reports);
@@ -952,7 +952,7 @@ function refreshReport(scroll) {
 
 function priceStrip(rep, an) {
   const all = rep.comps.map(c => c.price + (c.shipping || 0));
-  const pts = all.concat([an.quick, an.patient, an.market]); if (an.cost > 0) pts.push(an.cost);
+  const pts = rep.comps.filter(c => c.include).map(c => c.price + (c.shipping || 0)).concat([an.quick, an.patient, an.market]); if (an.cost > 0) pts.push(an.cost);
   let lo = Math.min(...pts), hi = Math.max(...pts); const padv = (hi - lo) * 0.08 || hi * 0.1; lo = Math.max(0, lo - padv); hi += padv;
   const W = 720, H = 150, L = 64, R = 16, x = v => L + (v - lo) / (hi - lo) * (W - L - R);
   const g = [];
@@ -964,6 +964,7 @@ function priceStrip(rep, an) {
   [lo, (lo + hi) / 2, hi].forEach((v, i) => g.push(svg('text', { x: x(v), y: 134, 'text-anchor': i === 0 ? 'start' : i === 2 ? 'end' : 'middle' }, money(v, true))));
   const cnt = { sold: 0, active: 0 };
   rep.comps.forEach(c => {
+    if (!c.include && (c.price + (c.shipping || 0) < lo || c.price + (c.shipping || 0) > hi)) return;
     const j = cnt[c.type]++ % 3, cy = (c.type === 'sold' ? 34 : 74) + (j - 1) * 11;
     const dot = svg('circle', { class: (c.type === 'sold' ? 'sold' : 'act') + (c.include ? '' : ' off'), cx: x(c.price + (c.shipping || 0)), cy, r: 5.5 });
     dot.append(svg('title', {}, c.type + ' ' + money(c.price + (c.shipping || 0)) + ' ' + c.source + (c.include ? '' : ' (left out)')));
@@ -1151,7 +1152,7 @@ function filterCard() {
       sel('fl-rt', 'minRating', [['any', 'Any rating'], ['okay', 'Okay or better'], ['good', 'Good or better'], ['great', 'Great only']], 'Rating'),
       sel('fl-cf', 'conf', [['any', 'Any confidence'], ['medium', 'Medium or higher'], ['high', 'High only']], 'Confidence'),
       sel('fl-wi', 'within', [['all', 'Any time'], ['7', 'Last 7 days'], ['14', 'Last 14 days']], 'Found'),
-      sel('fl-so', 'sort', [['profit', 'Highest profit'], ['margin', 'Highest margin'], ['rating', 'Best rating'], ['new', 'Newest'], ['price', 'Lowest price']], 'Sort by'),
+      sel('fl-so', 'sort', [['best', 'Best overall (weighs confidence)'], ['profit', 'Highest profit'], ['margin', 'Highest margin'], ['rating', 'Best rating'], ['new', 'Newest'], ['price', 'Lowest price']], 'Sort by'),
       h('div', { style: 'display:flex;align-items:flex-end' }, h('label', { style: 'display:flex;gap:8px;align-items:center;margin:0 0 9px' }, bind(h('input', { type: 'checkbox', checked: !!f.hideRisk }), 'hideRisk'), 'Hide serious risk flags'))));
 }
 function renderFeed() {
@@ -1172,8 +1173,8 @@ function renderFeed() {
     if (f.within !== 'all' && Date.now() - (d.lastSeen || 0) > parseInt(f.within, 10) * DAY) return false;
     return true;
   });
-  const sorts = { profit: (a, b) => b.m.calc.net - a.m.calc.net, margin: (a, b) => b.m.calc.margin - a.m.calc.margin, rating: (a, b) => (b.m.rating.level - a.m.rating.level) || (b.m.calc.net - a.m.calc.net), new: (a, b) => (b.d.lastSeen || 0) - (a.d.lastSeen || 0), price: (a, b) => a.m.cost - b.m.cost };
-  out.sort(sorts[f.sort] || sorts.profit);
+  const sorts = { best: (a, b) => (b.m.calc.net * Math.pow(b.m.confidence.score / 100, 2)) - (a.m.calc.net * Math.pow(a.m.confidence.score / 100, 2)), profit: (a, b) => b.m.calc.net - a.m.calc.net, margin: (a, b) => b.m.calc.margin - a.m.calc.margin, rating: (a, b) => (b.m.rating.level - a.m.rating.level) || (b.m.calc.net - a.m.calc.net), new: (a, b) => (b.d.lastSeen || 0) - (a.d.lastSeen || 0), price: (a, b) => a.m.cost - b.m.cost };
+  out.sort(sorts[f.sort] || sorts.best);
   const expiring = deals.filter(d => d.status !== 'saved' && d.status !== 'bought' && (d.lastSeen || 0) < Date.now() - (S.retentionDays - 3) * DAY).length;
   host.append(h('p', { class: 'small', role: 'status', style: 'margin:0 0 12px' }, 'Showing ' + out.length + ' of ' + deals.length + ' deals. Deals not seen for ' + S.retentionDays + ' days are removed unless you save them or mark them bought.' + (expiring ? ' ' + expiring + ' will expire within 3 days.' : '')));
   if (!out.length) {
