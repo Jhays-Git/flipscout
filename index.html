@@ -410,6 +410,21 @@ const CATS = {
 const CAT_KEYS = Object.keys(CATS);
 const catLabel = k => (CATS[k] ? CATS[k].label : 'Other');
 
+/* Which selling venues make sense for each category. Local pickup is always offered. */
+const SELL_ON = {
+  pokemon_single: ['ebay', 'tcgplayer', 'fbship', 'local'],
+  pokemon_sealed: ['ebay', 'tcgplayer', 'fbship', 'local'],
+  laptop: ['ebay', 'fbship', 'local'],
+  furniture: ['fbship', 'local'],
+  comic: ['ebay', 'fbship', 'local'],
+  shoes: ['ebay', 'poshmark', 'fbship', 'local'],
+  clothing: ['ebay', 'poshmark', 'fbship', 'local'],
+  console: ['ebay', 'fbship', 'local'],
+  sports: ['ebay', 'fbship', 'local'],
+  appliance: ['fbship', 'local'],
+  other: ['ebay', 'fbship', 'local']
+};
+
 const DEFAULTS = {
   retentionDays: 30,
   activeHaircut: 12,
@@ -580,6 +595,17 @@ function purge() {
 }
 
 /* ============ money math ============ */
+function sellOptions(cat) {
+  const base = (SELL_ON[cat] || SELL_ON.other).filter(k => S.platforms[k]);
+  if (!base.includes('local') && S.platforms.local) base.push('local');
+  return base;
+}
+function platFor(cat, want) {
+  const opts = sellOptions(cat);
+  if (want && opts.includes(want)) return want;
+  const d = S.defaultPlatform[cat];
+  return d && opts.includes(d) ? d : (opts[0] || 'local');
+}
 function feeFor(price, pk) {
   const p = S.platforms[pk] || { pct: 0, fixed: 0, minFee: 0 };
   let fee = price * (p.pct / 100) + (p.fixed || 0);
@@ -768,12 +794,12 @@ function analyze(rep) {
   else if (sold.length > 0) { basis = 'thin'; market = median(sold); quick = sold.length > 1 ? sold[0] : market * 0.92; patient = sold.length > 1 ? sold[sold.length - 1] : market * 1.05; }
   else if (act.length > 0) { basis = 'active'; const am = median(act) * (1 - hair); market = am; quick = Math.min(quantile(act, 0.25) * (1 - hair), am * 0.97); patient = median(act); }
   if (market !== null) { market = round2(market); quick = round2(Math.min(quick, market)); patient = round2(Math.max(patient, market)); }
-  const cat = rep.category, pk = rep.platform || S.defaultPlatform[cat] || 'ebay', cost = rep.cost > 0 ? rep.cost : 0;
+  const cat = rep.category, pk = platFor(cat, rep.platform), cost = rep.cost > 0 ? rep.cost : 0;
   const an = { basis, market, quick, patient, soldCount: sold.length, activeCount: act.length, usedCount: used.length, excluded: rep.comps.length - used.length, pk, cost };
   if (market !== null) {
     an.at = { quick: calcAt(quick, cat, pk, cost), market: calcAt(market, cat, pk, cost), patient: calcAt(patient, cat, pk, cost) };
     an.maxBuy = { great: maxBuy(an.at.market.takeHome, 3), good: maxBuy(an.at.market.takeHome, 2), okay: maxBuy(an.at.market.takeHome, 1) };
-    an.platforms = Object.keys(S.platforms).map(k => ({ key: k, label: S.platforms[k].label, calc: calcAt(market, cat, k, cost) }));
+    an.platforms = sellOptions(cat).map(k => ({ key: k, label: S.platforms[k].label, calc: calcAt(market, cat, k, cost) }));
   }
   const reasons = []; let score = 0;
   const sc = an.soldCount, ac = an.activeCount;
@@ -819,7 +845,7 @@ function analyze(rep) {
 }
 
 function dealMetrics(d) {
-  const cat = d.category, pk = S.defaultPlatform[cat] || 'ebay';
+  const cat = d.category, pk = platFor(cat);
   const cost = round2(d.listing_price + (d.shipping || 0));
   const soldEv = (d.evidence || []).filter(e => e.type === 'sold').map(e => e.price + (e.shipping || 0)).sort(asc);
   const actEv = (d.evidence || []).filter(e => e.type === 'active').length;
@@ -985,8 +1011,8 @@ function formCard() {
   const err = h('p', { id: 'f-err', class: 'small', role: 'alert', style: 'color:var(--skip);min-height:1.2em;margin:8px 0 0' });
   const catSel = h('select', { id: 'f-cat' }, CAT_KEYS.map(k => h('option', { value: k, selected: k === draft.category }, CATS[k].label)));
   const cost = h('input', { id: 'f-cost', type: 'number', min: '0', step: '0.01', inputmode: 'decimal', placeholder: 'e.g. 450', value: draft.cost });
-  const plat = h('select', { id: 'f-plat' }, Object.keys(S.platforms).map(k => h('option', { value: k }, S.platforms[k].label)));
-  function setPlat() { plat.value = draft.platform && S.platforms[draft.platform] ? draft.platform : (S.defaultPlatform[draft.category] || 'ebay'); }
+  const plat = h('select', { id: 'f-plat' });
+  function setPlat() { clear(plat); sellOptions(draft.category).forEach(k => plat.append(h('option', { value: k }, S.platforms[k].label))); plat.value = platFor(draft.category, draft.platform); draft.platform = plat.value; saveDraft(); }
   function drawFields() {
     clear(fieldsHost); clear(noteHost);
     const C = CATS[draft.category];
@@ -1070,7 +1096,7 @@ function analyzePaste(ta) {
   const C = CATS[draft.category];
   const title = C.title(draft.values).trim() || v.meta.item || 'Untitled item';
   const cost = parseFloat(draft.cost);
-  const rep = { id: uid('r'), createdAt: Date.now(), scanDate: v.meta.scan_date || todayISO(), category: draft.category, title, details: Object.assign({}, draft.values), cost: cost > 0 ? cost : 0, platform: draft.platform || S.defaultPlatform[draft.category] || 'ebay', comps: v.comps, riskFlags: v.meta.risk_flags, agentNotes: v.meta.agent_notes, limitations: v.meta.limitations, pinned: false };
+  const rep = { id: uid('r'), createdAt: Date.now(), scanDate: v.meta.scan_date || todayISO(), category: draft.category, title, details: Object.assign({}, draft.values), cost: cost > 0 ? cost : 0, platform: platFor(draft.category, draft.platform), comps: v.comps, riskFlags: v.meta.risk_flags, agentNotes: v.meta.agent_notes, limitations: v.meta.limitations, pinned: false };
   reports.unshift(rep); saveReports();
   ui.currentReportId = rep.id;
   const s = importSummary(v, p);
@@ -1124,7 +1150,7 @@ function renderReport(rep) {
 
   const costIn = h('input', { type: 'number', min: '0', step: '0.01', inputmode: 'decimal', value: rep.cost > 0 ? rep.cost : '', placeholder: 'e.g. 450', id: 'w-cost' });
   costIn.addEventListener('change', () => { rep.cost = parseFloat(costIn.value) > 0 ? parseFloat(costIn.value) : 0; saveReports(); refreshReport(false); });
-  const platIn = h('select', { id: 'w-plat' }, Object.keys(S.platforms).map(k => h('option', { value: k, selected: k === an.pk }, S.platforms[k].label)));
+  const platIn = h('select', { id: 'w-plat' }, sellOptions(rep.category).map(k => h('option', { value: k, selected: k === an.pk }, S.platforms[k].label)));
   platIn.addEventListener('change', () => { rep.platform = platIn.value; saveReports(); refreshReport(false); });
   sec.append(h('div', { class: 'whatif gap-t' }, h('div', null, h('label', { for: 'w-cost' }, 'What you paid or would pay ($)'), costIn), h('div', null, h('label', { for: 'w-plat' }, 'Where you would sell it'), platIn)));
 
@@ -1136,7 +1162,6 @@ function renderReport(rep) {
     const sub = c => rep.cost > 0 ? 'Profit ' + money(c.net) + ' (' + pctText(c.margin) + ')' : 'You keep ' + money(c.takeHome) + ' after fees and shipping';
     sec.append(h('div', { class: 'tags', role: 'group', 'aria-label': 'Suggested prices' },
       tag('', 'Quick sale', t.quick, sub(t.quick)), tag('main', 'List it at', t.market, sub(t.market) + '. Based on the ' + basisText + '.'), tag('', 'Patient price', t.patient, sub(t.patient))));
-    sec.append(h('div', { class: 'gap-t' }, priceStrip(rep, an)));
 
     const cols = h('div', { class: 'cols gap-t' });
     const left = h('div');
@@ -1160,6 +1185,7 @@ function renderReport(rep) {
     (rep.riskFlags || []).forEach(f => chips.append(h('span', { class: 'chip ' + (SEVERE.has(f) ? 'bad' : 'warn') }, humanize(f))));
     if (chips.children.length) right.append(h('h3', { class: 'subhead gap-t' }, 'Watch out for'), chips);
     cols.append(left, right); sec.append(cols);
+    sec.append(h('h3', { class: 'subhead gap-t' }, 'Where the comps sit'), h('div', null, priceStrip(rep, an)));
 
     sec.append(h('h3', { class: 'subhead gap-t' }, 'Compare where to sell'), h('div', { class: 'tablewrap' }, h('table', null,
       h('thead', null, h('tr', null, ['Platform', 'Fees', 'Shipping', 'You keep', 'Profit', 'Margin', 'Rating'].map((x, i) => h('th', { class: i > 0 && i < 6 ? 'num' : '' }, x)))),
@@ -1375,9 +1401,9 @@ function pageSettings() {
   root.append(h('section', { class: 'card' }, h('h2', null, 'Selling fees'), h('p', { class: 'sub' }, 'Percent of the sale price, plus a fixed amount per order. The minimum applies when the percent fee comes out lower.'),
     h('div', { class: 'tablewrap' }, h('table', null, h('thead', null, h('tr', null, ['Platform', 'Fee (%)', 'Per order ($)', 'Minimum fee ($)'].map(x => h('th', null, x)))), h('tbody', null, Object.keys(S.platforms).map(k => h('tr', null, h('td', null, S.platforms[k].label), h('td', null, numIn(() => S.platforms[k].pct, v => S.platforms[k].pct = v, { max: 100, label: S.platforms[k].label + ' fee percent' })), h('td', null, numIn(() => S.platforms[k].fixed, v => S.platforms[k].fixed = v, { label: S.platforms[k].label + ' fixed fee' })), h('td', null, numIn(() => S.platforms[k].minFee, v => S.platforms[k].minFee = v, { label: S.platforms[k].label + ' minimum fee' })))))))));
 
-  root.append(h('section', { class: 'card' }, h('h2', null, 'Shipping and default platform'), h('p', { class: 'sub' }, 'What it costs you to ship one item, and where each category usually sells. Local pickup has no shipping cost.'),
+  root.append(h('section', { class: 'card' }, h('h2', null, 'Shipping and default platform'), h('p', { class: 'sub' }, 'What it costs you to ship one item, and where each category usually sells. Each category only lists sites that make sense for it, such as Poshmark for clothing and shoes or TCGplayer for Pokémon. Local pickup is always available and has no shipping cost.'),
     h('div', { class: 'tablewrap' }, h('table', null, h('thead', null, h('tr', null, ['Category', 'Shipping cost ($)', 'Sells on'].map(x => h('th', null, x)))), h('tbody', null, CAT_KEYS.concat(['other']).map(k => {
-      const sel = h('select', { 'aria-label': catLabel(k) + ' default platform' }, Object.keys(S.platforms).map(p => h('option', { value: p, selected: S.defaultPlatform[k] === p }, S.platforms[p].label)));
+      const sel = h('select', { 'aria-label': catLabel(k) + ' default platform' }, sellOptions(k).map(p => h('option', { value: p, selected: platFor(k) === p }, S.platforms[p].label)));
       sel.addEventListener('change', () => { S.defaultPlatform[k] = sel.value; saved(); });
       return h('tr', null, h('td', null, catLabel(k)), h('td', null, numIn(() => S.shipping[k], v => S.shipping[k] = v, { label: catLabel(k) + ' shipping cost' })), h('td', null, sel));
     }))))));
