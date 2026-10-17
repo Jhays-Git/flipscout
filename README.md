@@ -6,7 +6,7 @@ AI-assisted resale price research and deal tracking for small online sellers. Bu
 
 ## What it does
 
-- **Price check.** Describe an item (Pokémon cards and sealed product, laptops and tech, furniture). The site writes a strict research prompt for any AI tool with web search. Paste the JSON answer back and FlipScout validates the comps, leaves out outliers and wrong variants, and works out a quick sale, list and patient price, the profit after fees and shipping, and the most you should pay.
+- **Price check.** Describe an item (Pokémon cards and sealed product, laptops and tech, furniture, comic books, shoes, vintage clothing and brands, game consoles, golf and sporting equipment, household appliances). The site writes a strict research prompt for any AI tool with web search. Paste the JSON answer back and FlipScout validates the comps, leaves out outliers and wrong variants, and works out a quick sale, list and patient price, the profit after fees and shipping, and the most you should pay.
 - **Deal feed.** Keep a watchlist, generate a scan prompt, import the agent's results, and filter, save, dismiss or mark deals as bought. Profit is recalculated on the page, and estimates that are higher than the agent's own sold evidence are lowered to match it.
 - **History.** Price checks and unsaved deals expire after 30 days (editable) unless pinned or saved.
 - **Profit rating on a sliding scale.** Margin thresholds depend on what the item costs, with a minimum dollar profit for each range.

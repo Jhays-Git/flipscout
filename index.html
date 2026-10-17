@@ -196,7 +196,7 @@ const NS = 'flipscout_v1_';
 const SCHEMA = 'flipscout-1';
 const DAY = 86400000;
 
-const GENERAL_RISKS = ['counterfeit_risk','condition_uncertain','price_volatile','low_liquidity','variant_ambiguity','locked_device_risk','resealed_risk','local_pickup_only','stale_data'];
+const GENERAL_RISKS = ['counterfeit_risk','condition_uncertain','price_volatile','low_liquidity','variant_ambiguity','locked_device_risk','resealed_risk','local_pickup_only','stale_data','restoration_risk','untested_or_as_is','modified_or_repaired','sizing_uncertain','heavy_item'];
 const DEAL_RISKS = GENERAL_RISKS.concat(['price_too_good','possible_fake','stock_photo_only','missing_details','unverified_seller','far_pickup']);
 const SEVERE = new Set(['price_too_good','possible_fake','counterfeit_risk','resealed_risk','locked_device_risk']);
 
@@ -271,6 +271,113 @@ const CATS = {
       { k: 'area', l: 'Metro area (optional)', ph: 'City level only' }
     ],
     title: d => (d.type || '') + (d.brand ? ', ' + d.brand : '')
+  },
+  comic: {
+    label: 'Comic book', ship: 5, platform: 'ebay',
+    sources: ['eBay sold listings (use the "Sold items" filter)', 'GoCollect or CovrPrice (recent sales by grade)', 'Heritage Auctions or ComicConnect completed sales (for graded or high-value books)'],
+    rules: ['Match the series, issue number, volume or year, publisher, printing and cover variant (newsstand, direct edition, 1:25 variant and so on).',
+            'Match the grade. Never mix CGC or CBCS graded books with raw ones, and compare raw books in the same condition.',
+            'Flag restored, pressed or trimmed books in "notes" and "risk_flags". Say if the issue is a key issue (first appearance, death, origin).'],
+    req: ['series', 'issue'],
+    fields: [
+      { k: 'series', l: 'Series title', ph: 'e.g. Amazing Spider-Man' },
+      { k: 'issue', l: 'Issue number', ph: 'e.g. 300' },
+      { k: 'volume', l: 'Volume or year', ph: 'e.g. Vol. 1 (1963)' },
+      { k: 'variant', l: 'Printing or variant', ph: 'e.g. 1st print, newsstand, 1:25 variant' },
+      { k: 'grade', l: 'Grade', t: 'select', o: ['Raw (ungraded)', 'CGC 9.8', 'CGC 9.6', 'CGC 9.4 or lower', 'CBCS graded', 'Other graded'] },
+      { k: 'condition', l: 'Condition (raw books)', t: 'select', o: ['Near Mint', 'Very Fine', 'Fine', 'Very Good', 'Good or lower'] }
+    ],
+    title: d => (d.series || '') + (d.issue ? ' #' + d.issue : '') + (d.volume ? ' (' + d.volume + ')' : '') + (d.grade && d.grade !== 'Raw (ungraded)' ? ', ' + d.grade : '')
+  },
+  shoes: {
+    label: 'Shoes and sneakers', ship: 12, platform: 'ebay',
+    sources: ['eBay sold listings (use the "Sold items" filter)', 'StockX and GOAT (last sale and recent sales)', 'Poshmark or Grailed asking prices (label these "active")'],
+    rules: ['Match brand, model, colorway, style code and size. Size changes price a lot, so say which size each comp is.',
+            'Compare the same condition: new in box, new without box, or used.',
+            'Authenticity matters. Flag any listing with missing tags, odd photos or a price far under market.'],
+    req: ['brand', 'model'],
+    fields: [
+      { k: 'brand', l: 'Brand', ph: 'e.g. Nike' },
+      { k: 'model', l: 'Model', ph: 'e.g. Air Jordan 1 Retro High OG' },
+      { k: 'colorway', l: 'Colorway', ph: 'e.g. Chicago' },
+      { k: 'sku', l: 'Style code (optional)', ph: 'e.g. DZ5485-612' },
+      { k: 'size', l: 'Size', ph: 'e.g. 10.5 men\'s' },
+      { k: 'condition', l: 'Condition', t: 'select', o: ['New in box (deadstock)', 'New without box', 'Excellent used', 'Good used', 'Worn'] },
+      { k: 'box', l: 'Box', t: 'select', o: ['Original box included', 'No original box'] }
+    ],
+    title: d => [d.brand, d.model, d.colorway].filter(Boolean).join(' ') + (d.size ? ', size ' + d.size : '')
+  },
+  clothing: {
+    label: 'Vintage clothing and brands', ship: 8, platform: 'ebay',
+    sources: ['eBay sold listings (use the "Sold items" filter)', 'Depop, Poshmark and Etsy vintage asking prices (label these "active")', 'Grailed (for Carhartt, Levi\'s and workwear)'],
+    rules: ['Match the brand, garment type, size and era. Tag style and details change value a lot (for example single stitch, big E tag, Made in USA, Detroit or Chore cut).',
+            'Compare the same condition. Flaws such as stains, holes or fading lower the price.',
+            'Fakes are common for Coach and some denim. Check serial or creed patches, hardware and stitching, and flag doubts in "risk_flags".'],
+    req: ['garment'],
+    fields: [
+      { k: 'brand', l: 'Brand', t: 'select', o: ['American Eagle', 'Hollister', 'Levi\'s', 'Carhartt', 'GAP', 'Banana Republic', 'Coach', 'Other'] },
+      { k: 'garment', l: 'Item', ph: 'e.g. 501 jeans, Detroit jacket, Willis bag' },
+      { k: 'era', l: 'Era or tag details (optional)', ph: 'e.g. 1990s, Made in USA' },
+      { k: 'size', l: 'Size', ph: 'e.g. 32x32, Large' },
+      { k: 'color', l: 'Color', ph: 'e.g. Brown duck canvas' },
+      { k: 'condition', l: 'Condition', t: 'select', o: ['New with tags', 'Excellent', 'Good', 'Fair (visible flaws)'] }
+    ],
+    title: d => (d.brand && d.brand !== 'Other' ? d.brand + ' ' : '') + (d.garment || '') + (d.era ? ' (' + d.era + ')' : '') + (d.size ? ', ' + d.size : '')
+  },
+  console: {
+    label: 'Video game console', ship: 15, platform: 'ebay',
+    sources: ['eBay sold listings (use the "Sold items" filter)', 'PriceCharting (loose, complete and new sold averages)', 'Facebook Marketplace or OfferUp asking prices (label these "active")'],
+    rules: ['Match the exact console model and edition, storage size and region.',
+            'Compare what is included (console only, controller and cables, complete in box, game bundle) and whether it was tested.',
+            'Flag modded, jailbroken, banned-online or untested consoles, and consoles sold for parts.'],
+    req: ['console'],
+    fields: [
+      { k: 'console', l: 'Console', ph: 'e.g. PlayStation 5 Disc Edition' },
+      { k: 'edition', l: 'Color or edition (optional)', ph: 'e.g. Limited edition, OLED white' },
+      { k: 'storage', l: 'Storage', ph: 'e.g. 825 GB' },
+      { k: 'included', l: 'Included', t: 'select', o: ['Console only', 'Console, controller and cables', 'Complete in box', 'Bundle with games'] },
+      { k: 'condition', l: 'Condition', t: 'select', o: ['Like new', 'Very good', 'Good', 'Fair', 'For parts or repair'] },
+      { k: 'tested', l: 'Tested', t: 'select', o: ['Tested and working', 'Untested'] },
+      { k: 'mods', l: 'Modifications', t: 'select', o: ['Stock (unmodified)', 'Modded or jailbroken'] }
+    ],
+    title: d => (d.console || '') + (d.storage ? ' (' + d.storage + ')' : '')
+  },
+  sports: {
+    label: 'Sporting equipment (golf and more)', ship: 20, platform: 'ebay',
+    sources: ['eBay sold listings (use the "Sold items" filter)', 'Callaway Pre-Owned, 2nd Swing or TGW asking prices (label these "active")', 'Facebook Marketplace asking prices (label these "active")'],
+    rules: ['Match brand, model, release year, club type, loft, shaft model and flex, and handedness. For iron sets, match which clubs are in the set (for example 4 to PW).',
+            'Compare the same condition and what is included (headcovers, wrench, bag).',
+            'Counterfeit clubs exist, so flag doubtful listings. Large or heavy items often cost more to ship, so say so in "notes".'],
+    req: ['brand', 'model'],
+    fields: [
+      { k: 'type', l: 'Type', t: 'select', o: ['Driver', 'Fairway wood', 'Hybrid', 'Iron set', 'Single iron', 'Wedge', 'Putter', 'Golf bag', 'Other sporting equipment'] },
+      { k: 'brand', l: 'Brand', ph: 'e.g. TaylorMade' },
+      { k: 'model', l: 'Model', ph: 'e.g. Stealth 2' },
+      { k: 'specs', l: 'Specs (loft, shaft, flex)', ph: 'e.g. 10.5 degrees, stiff shaft' },
+      { k: 'hand', l: 'Handedness', t: 'select', o: ['Right-handed', 'Left-handed', 'Not applicable'] },
+      { k: 'condition', l: 'Condition', t: 'select', o: ['Like new', 'Very good', 'Good', 'Fair'] },
+      { k: 'extras', l: 'Included (optional)', ph: 'e.g. headcover, wrench' }
+    ],
+    title: d => [d.brand, d.model].filter(Boolean).join(' ') + (d.type && d.type !== 'Other sporting equipment' ? ' ' + d.type.toLowerCase() : '')
+  },
+  appliance: {
+    label: 'Household appliance (experimental)', ship: 0, platform: 'local', experimental: true,
+    sources: ['Facebook Marketplace', 'Craigslist', 'OfferUp', 'eBay (local pickup or freight listings)', 'Habitat for Humanity ReStore (asking prices, for reference)'],
+    rules: ['Most appliances sell locally and sold prices are rarely public. Most comps will be "active" asking prices, which is fine, but label them correctly.',
+            'Match the type, brand, model number, capacity, finish and age. A model number is the best way to match.',
+            'Say whether each comp is working or sold as-is. Put the current new retail price in "agent_notes", not in the comps.'],
+    req: ['type', 'brand'],
+    fields: [
+      { k: 'type', l: 'Appliance', ph: 'e.g. Washer, refrigerator, air fryer' },
+      { k: 'brand', l: 'Brand', ph: 'e.g. Samsung' },
+      { k: 'model', l: 'Model number (optional)', ph: 'e.g. WF45R6100AW' },
+      { k: 'size', l: 'Capacity or size', ph: 'e.g. 4.5 cu ft' },
+      { k: 'finish', l: 'Finish or color', ph: 'e.g. White, stainless steel' },
+      { k: 'age', l: 'Age', ph: 'e.g. 3 years' },
+      { k: 'condition', l: 'Condition', t: 'select', o: ['Like new', 'Very good', 'Good', 'Fair', 'For parts or repair'] },
+      { k: 'tested', l: 'Tested', t: 'select', o: ['Tested and working', 'Untested or sold as-is'] }
+    ],
+    title: d => [d.brand, d.type, d.model].filter(Boolean).join(' ')
   }
 };
 const CAT_KEYS = Object.keys(CATS);
@@ -283,10 +390,11 @@ const DEFAULTS = {
     ebay: { label: 'eBay', pct: 13.25, fixed: 0.40, minFee: 0 },
     tcgplayer: { label: 'TCGplayer', pct: 12.75, fixed: 0.30, minFee: 0 },
     fbship: { label: 'Facebook Marketplace (shipped)', pct: 10, fixed: 0, minFee: 0.80 },
+    poshmark: { label: 'Poshmark', pct: 20, fixed: 0, minFee: 2.95 },
     local: { label: 'Local pickup (cash)', pct: 0, fixed: 0, minFee: 0 }
   },
-  shipping: { pokemon_single: 1.5, pokemon_sealed: 7, laptop: 18, furniture: 0, other: 6 },
-  defaultPlatform: { pokemon_single: 'ebay', pokemon_sealed: 'ebay', laptop: 'ebay', furniture: 'local', other: 'ebay' },
+  shipping: { pokemon_single: 1.5, pokemon_sealed: 7, laptop: 18, furniture: 0, comic: 5, shoes: 12, clothing: 8, console: 15, sports: 20, appliance: 0, other: 6 },
+  defaultPlatform: { pokemon_single: 'ebay', pokemon_sealed: 'ebay', laptop: 'ebay', furniture: 'local', comic: 'ebay', shoes: 'ebay', clothing: 'ebay', console: 'ebay', sports: 'ebay', appliance: 'local', other: 'ebay' },
   tiers: [
     { label: 'Under $25', max: 25, great: 50, good: 30, okay: 20, floor: 5 },
     { label: '$25 to $100', max: 100, great: 35, good: 25, okay: 15, floor: 10 },
@@ -707,7 +815,7 @@ function dealMetrics(d) {
 
 /* ============ prompts ============ */
 const RESEARCH_TEMPLATE = '{\n  "schema_version": "flipscout-1",\n  "kind": "research",\n  "item": "<the item as you understood it>",\n  "scan_date": "YYYY-MM-DD",\n  "comps": [\n    {\n      "type": "sold" or "active",\n      "source": "<site name, e.g. eBay>",\n      "title": "<listing title>",\n      "url": "<https link, or null>",\n      "price": <number in USD>,\n      "shipping": <number in USD, 0 for free shipping, or null>,\n      "condition": "<text or null>",\n      "variant_match": "exact" or "close" or "different" or "unknown",\n      "date": "<YYYY-MM-DD sold date or listing date, or null>",\n      "notes": "<short note or null>"\n    }\n  ],\n  "risk_flags": ["<one of the allowed flags>"],\n  "agent_notes": "<one or two sentences>",\n  "limitations": "<what you could not find or verify>"\n}';
-const DEALS_TEMPLATE = '{\n  "schema_version": "flipscout-1",\n  "kind": "deals",\n  "scan_date": "YYYY-MM-DD",\n  "deals": [\n    {\n      "item": "<listing title>",\n      "category": "pokemon_single" or "pokemon_sealed" or "laptop" or "furniture",\n      "source": "<site name>",\n      "url": "<https link to the live listing>",\n      "listing_price": <number in USD>,\n      "shipping": <number in USD, 0 for free shipping, or null>,\n      "condition": "<text or null>",\n      "est_resale_price": <number in USD>,\n      "resale_evidence": [\n        { "type": "sold" or "active", "source": "<site name>", "title": "<title>", "url": "<https link or null>", "price": <number>, "shipping": <number or null>, "date": "<YYYY-MM-DD or null>" }\n      ],\n      "confidence": "low" or "medium" or "high",\n      "risk_flags": ["<one of the allowed flags>"],\n      "notes": "<short note or null>",\n      "found_at": "YYYY-MM-DD"\n    }\n  ]\n}';
+const DEALS_TEMPLATE = '{\n  "schema_version": "flipscout-1",\n  "kind": "deals",\n  "scan_date": "YYYY-MM-DD",\n  "deals": [\n    {\n      "item": "<listing title>",\n      "category": ' + CAT_KEYS.map(k => '"' + k + '"').join(' or ') + ',\n      "source": "<site name>",\n      "url": "<https link to the live listing>",\n      "listing_price": <number in USD>,\n      "shipping": <number in USD, 0 for free shipping, or null>,\n      "condition": "<text or null>",\n      "est_resale_price": <number in USD>,\n      "resale_evidence": [\n        { "type": "sold" or "active", "source": "<site name>", "title": "<title>", "url": "<https link or null>", "price": <number>, "shipping": <number or null>, "date": "<YYYY-MM-DD or null>" }\n      ],\n      "confidence": "low" or "medium" or "high",\n      "risk_flags": ["<one of the allowed flags>"],\n      "notes": "<short note or null>",\n      "found_at": "YYYY-MM-DD"\n    }\n  ]\n}';
 const OUTPUT_RULES = 'OUTPUT FORMAT\nReply with ONE JSON object and nothing else. No introduction, no closing remarks, no markdown, no code fences, no citation or footnote markers inside the JSON, straight double quotes only, no trailing commas. Numbers must be plain numbers (24.99, not "$24.99"). Use null for anything you do not know. Follow this shape exactly:\n\n';
 
 function buildResearchPrompt(catKey, d, cost) {
@@ -995,7 +1103,7 @@ function renderReport(rep) {
     sec.append(h('div', { class: 'notice warn' }, h('strong', null, 'No comps are switched on'), 'Tick at least one comp in the table below, or run the research again.'));
   } else {
     const t = an.at, basisText = { sold: 'median of ' + an.soldCount + ' sold comps', mixed: 'blend of sold and discounted asking prices', thin: 'only ' + an.soldCount + ' sold comp' + (an.soldCount === 1 ? '' : 's'), active: 'asking prices minus ' + S.activeHaircut + '%, no sold data' }[an.basis];
-    const tag = (cls, k, calc, sub) => h('div', { class: 'tag ' + cls }, h('div', { class: 'k' }, k), h('div', { class: 'v' }, money(calc.price, cls === 'main' ? true : undefined)), h('div', { class: 's' }, sub));
+    const tag = (cls, k, calc, sub) => h('div', { class: 'tag ' + cls }, h('div', { class: 'k' }, k), h('div', { class: 'v' }, money(calc.price)), h('div', { class: 's' }, sub));
     const sub = c => rep.cost > 0 ? 'Profit ' + money(c.net) + ' (' + pctText(c.margin) + ')' : 'You keep ' + money(c.takeHome) + ' after fees and shipping';
     sec.append(h('div', { class: 'tags', role: 'group', 'aria-label': 'Suggested prices' },
       tag('', 'Quick sale', t.quick, sub(t.quick)), tag('main', 'List it at', t.market, sub(t.market) + '. Based on the ' + basisText + '.'), tag('', 'Patient price', t.patient, sub(t.patient))));
