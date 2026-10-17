@@ -1,0 +1,1327 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FlipScout</title>
+<meta name="description" content="Price research for resellers. Use any AI tool to find comparable sales, then see what to list it for and the most you should pay.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M9 3h20v26H9L2 16z' fill='%23ffd23f' stroke='%2314213d' stroke-width='2' stroke-linejoin='round'/%3E%3Ccircle cx='9' cy='16' r='2.6' fill='%2314213d'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#14213d; --ink-2:#3b475f; --muted:#566277; --paper:#f3f5f8; --card:#fff; --line:#d8dee8; --line-2:#eef1f6;
+  --sticker:#ffd23f; --sticker-2:#ffe9a0; --sticker-ink:#33270a;
+  --great:#126b3a; --good:#1e7a46; --good-bg:#e4f4ea; --okay:#855400; --okay-bg:#fff0cf; --skip:#a52a24; --skip-bg:#fbe3e1;
+  --link:#1a4fd1; --focus:#1a4fd1; --hole:#fff; --radius:10px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 16px/1.5 "Bricolage Grotesque",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+a{color:var(--link)}
+h1,h2,h3{line-height:1.2;letter-spacing:-.015em;margin:0}
+p{margin:0 0 .75em}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;border-radius:4px}
+.skip{position:absolute;left:-999px;top:8px;background:var(--ink);color:#fff;padding:8px 12px;border-radius:6px;z-index:50}
+.skip:focus{left:8px}
+
+.top{background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.top-in{max-width:1080px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:28px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:21px;letter-spacing:-.03em;color:var(--ink);text-decoration:none;padding:12px 0}
+nav{display:flex;gap:2px;flex-wrap:wrap}
+nav a{padding:19px 12px 16px;color:var(--ink-2);text-decoration:none;font-weight:600;border-bottom:3px solid transparent}
+nav a:hover{color:var(--ink)}
+nav a[aria-current=page]{color:var(--ink);font-weight:800;border-bottom-color:var(--sticker)}
+@media (max-width:700px){
+  .top-in{gap:0;padding:0 12px}
+  nav{width:100%;overflow-x:auto;flex-wrap:nowrap}
+  nav a{padding:10px 10px 8px;white-space:nowrap}
+}
+
+.wrap{max-width:1080px;margin:0 auto;padding:28px 20px 56px}
+.stack{display:grid;gap:20px}
+.lead h1{font-size:clamp(28px,4.2vw,40px);font-weight:800;letter-spacing:-.03em;margin-bottom:8px}
+.lead p{max-width:62ch;color:var(--ink-2);font-size:17px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+.card h2{font-size:20px;font-weight:750}
+.sub{color:var(--muted);margin:4px 0 16px;font-size:15px}
+.step{display:flex;gap:12px;align-items:flex-start;margin-bottom:6px}
+.step .n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--ink);color:#fff;font-weight:800;display:grid;place-items:center;font-size:14px;margin-top:1px}
+.step .sub{margin-bottom:12px}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px 16px}
+label{display:block;font-weight:650;font-size:14px;margin-bottom:4px}
+.hint{display:block;font-weight:400;color:var(--muted);font-size:13px;margin-top:3px}
+input,select,textarea{width:100%;font:inherit;padding:9px 11px;border:1px solid #9aa6b9;border-radius:8px;background:#fff;color:var(--ink)}
+input[type=checkbox],input[type=radio]{width:auto;accent-color:var(--ink)}
+input[aria-invalid=true]{border-color:var(--skip);background:#fff8f7}
+textarea{resize:vertical;min-height:140px}
+.promptbox{font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;min-height:260px;background:#fafbfd}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row.end{justify-content:flex-end}
+.gap-t{margin-top:16px}
+.btn{font:inherit;font-weight:700;padding:10px 16px;border-radius:8px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;text-decoration:none;display:inline-block;line-height:1.3}
+.btn:hover{filter:brightness(1.15)}
+.btn.secondary{background:#fff;color:var(--ink)}
+.btn.secondary:hover{background:var(--line-2);filter:none}
+.btn.accent{background:var(--sticker);border-color:var(--sticker-ink);color:var(--sticker-ink)}
+.btn.accent:hover{filter:brightness(.96)}
+.btn.small{padding:6px 11px;font-size:14px}
+.btn.danger{background:#fff;color:var(--skip);border-color:var(--skip)}
+.btn.armed{background:var(--skip);color:#fff}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.filebtn{position:relative;overflow:hidden}
+.filebtn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.filebtn:focus-within{outline:3px solid var(--focus);outline-offset:2px}
+
+.notice{padding:11px 14px;border-radius:8px;border:1px solid var(--line);background:var(--line-2);font-size:15px}
+.notice.warn{background:var(--okay-bg);border-color:#e3c27a;color:#4d3200}
+.notice.bad{background:var(--skip-bg);border-color:#eaa7a2;color:#6d1410}
+.notice.ok{background:var(--good-bg);border-color:#9ccfb0;color:#0e4a28}
+.notice strong{display:block}
+.notice ul{margin:6px 0 0;padding-left:20px}
+.notice details{margin-top:6px}
+.small{font-size:14px;color:var(--muted)}
+
+/* the price tags */
+.tags{display:grid;grid-template-columns:1fr 1.35fr 1fr;gap:14px;align-items:end;margin:6px 0 4px}
+.tag{position:relative;background:var(--sticker-2);color:var(--sticker-ink);padding:14px 18px 14px 44px;clip-path:polygon(26px 0,100% 0,100% 100%,26px 100%,0 50%)}
+.tag::before{content:"";position:absolute;left:15px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;background:var(--hole);box-shadow:inset 0 0 0 1.5px rgba(51,39,10,.45)}
+.tag.main{background:var(--sticker);padding:20px 22px 20px 50px;clip-path:polygon(30px 0,100% 0,100% 100%,30px 100%,0 50%)}
+.tag.main::before{left:18px;width:12px;height:12px;margin-top:-6px}
+.tag .k{font-weight:700;font-size:15px}
+.tag .v{font-weight:800;font-size:30px;letter-spacing:-.03em;line-height:1.1;font-variant-numeric:tabular-nums}
+.tag.main .v{font-size:clamp(38px,6vw,54px)}
+.tag .s{font-size:14px;margin-top:4px;color:#4d3b0a}
+@media (max-width:760px){
+  .tags{grid-template-columns:1fr}
+  .tag.main{order:-1}
+}
+
+.pill{display:inline-block;padding:2px 11px;border-radius:999px;font-weight:750;font-size:13px;border:1px solid transparent;white-space:nowrap}
+.pill.l3{background:var(--great);color:#fff}
+.pill.l2{background:var(--good-bg);color:var(--good);border-color:#8cc7a4}
+.pill.l1{background:var(--okay-bg);color:var(--okay);border-color:#e3c27a}
+.pill.l0{background:var(--skip-bg);color:var(--skip);border-color:#eaa7a2}
+.pill.lna{background:var(--line-2);color:var(--muted);border-color:var(--line)}
+.chip{display:inline-block;padding:1px 8px;border-radius:6px;background:var(--line-2);color:var(--ink-2);font-size:13px;border:1px solid var(--line);margin:0 4px 4px 0}
+.chip.warn{background:var(--okay-bg);border-color:#e3c27a;color:var(--okay)}
+.chip.bad{background:var(--skip-bg);border-color:#eaa7a2;color:var(--skip)}
+
+.cols{display:grid;grid-template-columns:1.1fr .9fr;gap:20px}
+@media (max-width:860px){.cols{grid-template-columns:1fr}}
+.meter{height:8px;background:var(--line-2);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.meter>i{display:block;height:100%;background:var(--ink)}
+.verdict{font-size:17px}
+.verdict b{font-weight:750}
+.subhead{font-size:16px;font-weight:750;margin:0 0 8px}
+.whatif{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin:4px 0 16px}
+
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th{text-align:left;font-weight:700;background:var(--line-2);padding:8px 10px;white-space:nowrap;border-bottom:1px solid var(--line)}
+td{padding:8px 10px;border-bottom:1px solid var(--line-2);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.num{text-align:right}
+th.num{text-align:right}
+tr.off td{color:#7b8698}
+tr.hl td{background:#fffbe8}
+.strip{width:100%;height:auto;display:block}
+.strip text{font:12px "Bricolage Grotesque",system-ui,sans-serif;fill:var(--ink-2)}
+.strip .axis{stroke:var(--line);stroke-width:1}
+.strip .band{fill:var(--sticker-2);opacity:.75}
+.strip .mkt{stroke:var(--sticker-ink);stroke-width:2}
+.strip .sold{fill:var(--ink)}
+.strip .act{fill:#fff;stroke:var(--ink);stroke-width:2}
+.strip .off{opacity:.25}
+.strip .cost{fill:var(--skip)}
+
+.deals{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.deal{display:flex;flex-direction:column;gap:10px}
+.deal h3{font-size:17px;font-weight:750}
+.deal .top-r{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.nums{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:var(--line-2);border-radius:8px;padding:10px}
+.nums div b{display:block;font-size:18px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.nums div span{font-size:13px;color:var(--muted)}
+.deal .acts{margin-top:auto;display:flex;gap:8px;flex-wrap:wrap}
+.status-saved{border-color:#8cc7a4}
+.status-bought{border-color:var(--ink);border-width:2px}
+.status-dismissed{opacity:.65}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.empty{text-align:center;padding:36px 20px;color:var(--ink-2)}
+.empty b{display:block;font-size:18px;margin-bottom:4px;color:var(--ink)}
+
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:8px;z-index:60;font-weight:600;max-width:90vw;box-shadow:0 6px 24px rgba(20,33,61,.25)}
+.toast.bad{background:var(--skip)}
+footer{max-width:1080px;margin:0 auto;padding:0 20px 40px;color:var(--muted);font-size:14px}
+footer p{max-width:80ch}
+.prose{max-width:72ch}
+.prose h2{margin:22px 0 6px}
+.prose h2:first-child{margin-top:0}
+.prose ul,.prose ol{padding-left:22px;margin:0 0 .8em}
+.prose li{margin-bottom:4px}
+.tblnum{width:90px}
+@media (prefers-reduced-motion:no-preference){.toast{animation:pop .18s ease-out}@keyframes pop{from{opacity:0;transform:translate(-50%,6px)}}}
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top"><div class="top-in">
+  <a class="brand" href="#/research" aria-label="FlipScout home">
+    <svg width="30" height="30" viewBox="0 0 32 32" aria-hidden="true"><path d="M9 3h20v26H9L2 16z" fill="#ffd23f" stroke="#14213d" stroke-width="2" stroke-linejoin="round"/><circle cx="9" cy="16" r="2.6" fill="#14213d"/></svg>
+    FlipScout
+  </a>
+  <nav aria-label="Main">
+    <a href="#/research" data-r="research">Price check</a>
+    <a href="#/deals" data-r="deals">Deal feed</a>
+    <a href="#/history" data-r="history">History</a>
+    <a href="#/settings" data-r="settings">Settings</a>
+    <a href="#/guide" data-r="guide">Guide</a>
+  </nav>
+</div></header>
+<div id="banner"></div>
+<main id="main" class="wrap" tabindex="-1"><noscript>FlipScout needs JavaScript turned on.</noscript></main>
+<footer>
+  <p>FlipScout is a class project. Prices, fees and profit figures are estimates from AI research, not financial advice. Check every link and the current fees before you buy or sell. Everything you enter stays in this browser.</p>
+</footer>
+<div id="toast-host" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* ============ constants ============ */
+const NS = 'flipscout_v1_';
+const SCHEMA = 'flipscout-1';
+const DAY = 86400000;
+
+const GENERAL_RISKS = ['counterfeit_risk','condition_uncertain','price_volatile','low_liquidity','variant_ambiguity','locked_device_risk','resealed_risk','local_pickup_only','stale_data'];
+const DEAL_RISKS = GENERAL_RISKS.concat(['price_too_good','possible_fake','stock_photo_only','missing_details','unverified_seller','far_pickup']);
+const SEVERE = new Set(['price_too_good','possible_fake','counterfeit_risk','resealed_risk','locked_device_risk']);
+
+const CATS = {
+  pokemon_single: {
+    label: 'Pokémon card (single)', ship: 1.5, platform: 'ebay',
+    sources: ['eBay sold listings (use the "Sold items" filter)', 'TCGplayer (market price and recent sales)', 'PriceCharting'],
+    rules: ['Match the set, card number, language, printing (holo, reverse holo, 1st edition and so on) and grade. Never mix graded and raw cards.',
+            'For raw cards, compare the same condition (Near Mint with Near Mint, and so on).',
+            'Only use listings whose title or photos show the same set and card number. Ignore reprints and look-alikes.'],
+    req: ['name', 'set'],
+    fields: [
+      { k: 'name', l: 'Card name', ph: 'e.g. Charizard ex' },
+      { k: 'set', l: 'Set', ph: 'e.g. Obsidian Flames' },
+      { k: 'number', l: 'Card number', ph: 'e.g. 125/197' },
+      { k: 'language', l: 'Language', t: 'select', o: ['English', 'Japanese', 'Other'] },
+      { k: 'printing', l: 'Printing or variant', ph: 'e.g. Holo, Reverse holo, 1st Edition' },
+      { k: 'grade', l: 'Grade', t: 'select', o: ['Raw (ungraded)', 'PSA 10', 'PSA 9', 'PSA 8 or lower', 'BGS or CGC graded', 'Other graded'] },
+      { k: 'condition', l: 'Condition (raw cards)', t: 'select', o: ['Near Mint', 'Lightly Played', 'Moderately Played', 'Heavily Played', 'Damaged'] }
+    ],
+    title: d => (d.name || '') + (d.set ? ' (' + d.set + (d.number ? ' ' + d.number : '') + ')' : '') + (d.grade && d.grade !== 'Raw (ungraded)' ? ', ' + d.grade : '')
+  },
+  pokemon_sealed: {
+    label: 'Pokémon sealed product', ship: 7, platform: 'ebay',
+    sources: ['eBay sold listings (use the "Sold items" filter)', 'TCGplayer (sealed product market price and recent sales)', 'PriceCharting', 'Facebook Marketplace or Mercari asking prices (label these "active")'],
+    rules: ['Match the product type, set, language and edition exactly.',
+            'Count only factory-sealed items in the stated box condition.',
+            'Watch for resealed or fake product. Note anything suspicious in "notes".'],
+    req: ['product', 'set'],
+    fields: [
+      { k: 'product', l: 'Product', ph: 'e.g. Elite Trainer Box' },
+      { k: 'set', l: 'Set', ph: 'e.g. Prismatic Evolutions' },
+      { k: 'language', l: 'Language', t: 'select', o: ['English', 'Japanese', 'Other'] },
+      { k: 'edition', l: 'Edition', t: 'select', o: ['Standard', '1st Edition', 'Unlimited', 'Other'] },
+      { k: 'condition', l: 'Box condition', t: 'select', o: ['Factory sealed, mint box', 'Factory sealed, minor box wear', 'Factory sealed, dented or torn box'] }
+    ],
+    title: d => (d.product || '') + (d.set ? ' (' + d.set + ')' : '')
+  },
+  laptop: {
+    label: 'MacBook, laptop or tech', ship: 18, platform: 'ebay',
+    sources: ['eBay sold listings (use the "Sold items" filter)', 'Swappa', 'Back Market', 'Facebook Marketplace or Craigslist asking prices (label these "active")', 'The maker\'s refurbished store price, for reference (label it "active")'],
+    rules: ['Match model, year, chip or processor, RAM and storage. Do not mix configurations.',
+            'Compare the same condition grade.',
+            'Flag activation-lock, iCloud-lock, battery-health or screen-damage concerns in "notes" and "risk_flags".'],
+    req: ['model'],
+    fields: [
+      { k: 'model', l: 'Model', ph: 'e.g. MacBook Air 13-inch' },
+      { k: 'year', l: 'Year', ph: 'e.g. 2022' },
+      { k: 'chip', l: 'Chip or processor', ph: 'e.g. Apple M2' },
+      { k: 'ram', l: 'Memory (RAM)', ph: 'e.g. 8 GB' },
+      { k: 'storage', l: 'Storage', ph: 'e.g. 256 GB' },
+      { k: 'battery', l: 'Battery cycles (optional)', ph: 'e.g. 120' },
+      { k: 'condition', l: 'Condition', t: 'select', o: ['Like new', 'Very good', 'Good', 'Fair', 'For parts or repair'] },
+      { k: 'accessories', l: 'Included', t: 'select', o: ['Charger included', 'Charger and original box', 'No charger'] },
+      { k: 'lock', l: 'Lock status', t: 'select', o: ['No activation lock', 'Unknown'] }
+    ],
+    title: d => (d.model || '') + ([d.year, d.chip, d.ram, d.storage].filter(Boolean).length ? ' (' + [d.year, d.chip, d.ram, d.storage].filter(Boolean).join(', ') + ')' : '')
+  },
+  furniture: {
+    label: 'Couch or furniture (experimental)', ship: 0, platform: 'local', experimental: true,
+    sources: ['Facebook Marketplace', 'Craigslist', 'OfferUp', 'Chairish or AptDeco', 'eBay (local pickup or freight listings)'],
+    rules: ['Furniture mostly sells locally and sold prices are rarely public. Most comps will be "active" asking prices, which is fine, but label them correctly.',
+            'Match type, brand or line, size, material and condition.',
+            'Say in "limitations" that sold data was not available, if that is the case.'],
+    req: ['type'],
+    fields: [
+      { k: 'type', l: 'Type', ph: 'e.g. 3-seat sofa' },
+      { k: 'brand', l: 'Brand or line', ph: 'e.g. West Elm Harmony' },
+      { k: 'material', l: 'Material and color', ph: 'e.g. Gray velvet, oak legs' },
+      { k: 'dimensions', l: 'Dimensions', ph: 'e.g. 84 x 36 x 33 in' },
+      { k: 'condition', l: 'Condition', t: 'select', o: ['Like new', 'Very good', 'Good', 'Fair', 'Worn'] },
+      { k: 'area', l: 'Metro area (optional)', ph: 'City level only' }
+    ],
+    title: d => (d.type || '') + (d.brand ? ', ' + d.brand : '')
+  }
+};
+const CAT_KEYS = Object.keys(CATS);
+const catLabel = k => (CATS[k] ? CATS[k].label : 'Other');
+
+const DEFAULTS = {
+  retentionDays: 30,
+  activeHaircut: 12,
+  platforms: {
+    ebay: { label: 'eBay', pct: 13.25, fixed: 0.40, minFee: 0 },
+    tcgplayer: { label: 'TCGplayer', pct: 12.75, fixed: 0.30, minFee: 0 },
+    fbship: { label: 'Facebook Marketplace (shipped)', pct: 10, fixed: 0, minFee: 0.80 },
+    local: { label: 'Local pickup (cash)', pct: 0, fixed: 0, minFee: 0 }
+  },
+  shipping: { pokemon_single: 1.5, pokemon_sealed: 7, laptop: 18, furniture: 0, other: 6 },
+  defaultPlatform: { pokemon_single: 'ebay', pokemon_sealed: 'ebay', laptop: 'ebay', furniture: 'local', other: 'ebay' },
+  tiers: [
+    { label: 'Under $25', max: 25, great: 50, good: 30, okay: 20, floor: 5 },
+    { label: '$25 to $100', max: 100, great: 35, good: 25, okay: 15, floor: 10 },
+    { label: '$100 to $500', max: 500, great: 25, good: 15, okay: 10, floor: 25 },
+    { label: '$500 and up', max: null, great: 15, good: 10, okay: 5, floor: 50 }
+  ]
+};
+
+/* ============ small helpers ============ */
+const $ = (s, r) => (r || document).querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+const round2 = n => Math.round(n * 100) / 100;
+const isNum = n => typeof n === 'number' && isFinite(n);
+const asc = (a, b) => a - b;
+const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const pad = n => String(n).padStart(2, '0');
+const isoOf = d => d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+const todayISO = () => isoOf(new Date());
+const isoToTs = iso => Date.parse(iso + 'T12:00:00');
+const daysAgoISO = n => isoOf(new Date(Date.now() - n * DAY));
+const humanize = s => String(s).replace(/_/g, ' ');
+
+function money(n, whole) {
+  if (!isNum(n)) return '—';
+  const abs = Math.abs(n);
+  const w = whole === undefined ? abs >= 100 : whole;
+  return (n < 0 ? '−' : '') + '$' + abs.toLocaleString('en-US', { minimumFractionDigits: w ? 0 : 2, maximumFractionDigits: w ? 0 : 2 });
+}
+const pctText = n => (isNum(n) ? (n < 0 ? '−' : '') + Math.abs(Math.round(n * 100)) + '%' : '—');
+function ageText(ts) {
+  const d = Math.floor((Date.now() - ts) / DAY);
+  return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d + ' days ago';
+}
+function median(a) { return quantile(a, 0.5); }
+function quantile(sorted, q) {
+  if (!sorted.length) return null;
+  const pos = (sorted.length - 1) * q, lo = Math.floor(pos), hi = Math.ceil(pos);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo);
+}
+function safeUrl(u) {
+  if (typeof u !== 'string') return null;
+  try { const x = new URL(u.trim()); return (x.protocol === 'https:' || x.protocol === 'http:') ? x.href : null; } catch (e) { return null; }
+}
+function str(v, max) {
+  if (typeof v !== 'string') return null;
+  const s = v.replace(/[\u0000-\u001f\u007f]+/g, ' ').trim().slice(0, max || 200);
+  return s || null;
+}
+function toNum(v) {
+  if (isNum(v)) return v;
+  if (typeof v === 'string') { const s = v.replace(/[$,\s]/g, ''); if (/^-?\d+(\.\d+)?$/.test(s)) return parseFloat(s); }
+  return null;
+}
+function toDate(v) {
+  if (typeof v !== 'string') return null;
+  const m = v.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  return isNaN(Date.parse(m[0] + 'T12:00:00')) ? null : m[0];
+}
+function hashStr(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+
+function h(tag, props, ...kids) {
+  const n = document.createElement(tag);
+  if (props) for (const [k, v] of Object.entries(props)) {
+    if (v === null || v === undefined || v === false) continue;
+    if (k === 'class') n.className = v;
+    else if (k === 'for') n.setAttribute('for', v);
+    else if (k === 'style') n.style.cssText = v;
+    else if (k.startsWith('on')) n.addEventListener(k.slice(2), v);
+    else if (k === 'value' || k === 'checked' || k === 'selected' || k === 'disabled' || k === 'hidden' || k === 'readOnly') n[k] = v;
+    else n.setAttribute(k, v === true ? '' : v);
+  }
+  kids.flat(Infinity).forEach(c => { if (c === null || c === undefined || c === false) return; n.append(c && c.nodeType ? c : document.createTextNode(String(c))); });
+  return n;
+}
+function clear(n) { while (n.firstChild) n.removeChild(n.firstChild); return n; }
+function svg(tag, attrs, ...kids) {
+  const n = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, v);
+  kids.flat().forEach(c => { if (c !== null && c !== undefined) n.append(c.nodeType ? c : document.createTextNode(String(c))); });
+  return n;
+}
+function extLink(url, text, cls) {
+  const u = safeUrl(url);
+  return u ? h('a', { href: u, target: '_blank', rel: 'noopener noreferrer nofollow', class: cls }, text) : h('span', null, text);
+}
+
+let toastTimer = null;
+function toast(msg, kind) {
+  const host = $('#toast-host'); if (!host) return;
+  clear(host).append(h('div', { class: 'toast' + (kind === 'bad' ? ' bad' : ''), role: 'status' }, msg));
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => clear(host), 3200);
+}
+
+async function copyText(text, btn) {
+  try { await navigator.clipboard.writeText(text); }
+  catch (e) {
+    const t = h('textarea', { style: 'position:fixed;left:-999px;top:0' }); t.value = text; document.body.append(t); t.select();
+    try { document.execCommand('copy'); } catch (e2) {} t.remove();
+  }
+  toast('Copied to your clipboard');
+}
+function confirmButton(label, armedLabel, onConfirm, cls) {
+  let armed = false, timer = null;
+  const b = h('button', { type: 'button', class: 'btn danger small ' + (cls || '') }, label);
+  b.addEventListener('click', () => {
+    if (!armed) { armed = true; b.textContent = armedLabel; b.classList.add('armed'); timer = setTimeout(() => { armed = false; b.textContent = label; b.classList.remove('armed'); }, 4000); }
+    else { clearTimeout(timer); onConfirm(); }
+  });
+  return b;
+}
+
+/* ============ storage ============ */
+const mem = {}; let canPersist = true;
+try { localStorage.setItem(NS + 't', '1'); localStorage.removeItem(NS + 't'); } catch (e) { canPersist = false; }
+const store = {
+  get(k, d) { try { const raw = canPersist ? localStorage.getItem(NS + k) : (k in mem ? mem[k] : null); return raw == null ? d : JSON.parse(raw); } catch (e) { return d; } },
+  set(k, v) { const raw = JSON.stringify(v); try { if (canPersist) localStorage.setItem(NS + k, raw); else mem[k] = raw; return true; } catch (e) { toast('Browser storage is full or blocked. Export a backup in Settings.', 'bad'); return false; } },
+  remove(k) { try { if (canPersist) localStorage.removeItem(NS + k); else delete mem[k]; } catch (e) {} },
+  bytes() { if (!canPersist) return 0; let n = 0; for (let i = 0; i < localStorage.length; i++) { const key = localStorage.key(i); if (key && key.startsWith(NS)) n += (key.length + localStorage.getItem(key).length) * 2; } return n; }
+};
+
+function loadSettings() {
+  const saved = store.get('settings', {}) || {};
+  const s = clone(DEFAULTS);
+  const num = (v, lo, hi) => isNum(v) && v >= lo && v <= hi;
+  if (num(saved.retentionDays, 1, 365)) s.retentionDays = Math.round(saved.retentionDays);
+  if (num(saved.activeHaircut, 0, 60)) s.activeHaircut = saved.activeHaircut;
+  if (saved.platforms) for (const k of Object.keys(s.platforms)) { const p = saved.platforms[k]; if (p) for (const f of ['pct', 'fixed', 'minFee']) if (num(p[f], 0, 100)) s.platforms[k][f] = p[f]; }
+  if (saved.shipping) for (const k of Object.keys(s.shipping)) if (num(saved.shipping[k], 0, 1000)) s.shipping[k] = saved.shipping[k];
+  if (saved.defaultPlatform) for (const k of Object.keys(s.defaultPlatform)) if (s.platforms[saved.defaultPlatform[k]]) s.defaultPlatform[k] = saved.defaultPlatform[k];
+  if (Array.isArray(saved.tiers) && saved.tiers.length === s.tiers.length) saved.tiers.forEach((t, i) => { for (const f of ['great', 'good', 'okay', 'floor']) if (t && num(t[f], 0, 100000)) s.tiers[i][f] = t[f]; });
+  return s;
+}
+let S = loadSettings();
+let reports = store.get('reports', []);
+let deals = store.get('deals', []);
+let watch = store.get('watchlist', []);
+let draft = store.get('draft', null) || { category: 'laptop', values: {}, cost: '', platform: '' };
+const defaultFilters = () => ({ cat: 'all', source: 'all', status: 'active', minProfit: '', minMargin: '', maxPrice: '', minRating: 'any', conf: 'any', hideRisk: false, within: 'all', q: '', sort: 'profit' });
+let filters = Object.assign(defaultFilters(), store.get('filters', {}));
+const saveSettings = () => store.set('settings', S);
+const saveReports = () => store.set('reports', reports);
+const saveDeals = () => store.set('deals', deals);
+const saveWatch = () => store.set('watchlist', watch);
+const saveDraft = () => store.set('draft', draft);
+
+function purge() {
+  const cut = Date.now() - S.retentionDays * DAY;
+  const r0 = reports.length, d0 = deals.length;
+  reports = reports.filter(r => r.pinned || r.createdAt >= cut);
+  deals = deals.filter(d => d.status === 'saved' || d.status === 'bought' || (d.lastSeen || 0) >= cut);
+  if (reports.length !== r0) saveReports();
+  if (deals.length !== d0) saveDeals();
+  return { reports: r0 - reports.length, deals: d0 - deals.length };
+}
+
+/* ============ money math ============ */
+function feeFor(price, pk) {
+  const p = S.platforms[pk] || { pct: 0, fixed: 0, minFee: 0 };
+  let fee = price * (p.pct / 100) + (p.fixed || 0);
+  if (p.pct > 0 && p.minFee) fee = Math.max(fee, p.minFee);
+  return round2(fee);
+}
+function shipOut(cat, pk) { if (pk === 'local') return 0; const v = S.shipping[cat]; return isNum(v) ? v : S.shipping.other; }
+function tierFor(cost) { for (const t of S.tiers) if (t.max === null || cost < t.max) return t; return S.tiers[S.tiers.length - 1]; }
+function rate(cost, net) {
+  if (!(cost > 0) || !isNum(net)) return { level: null, label: 'Add a cost', tier: null, margin: null, reason: '' };
+  const t = tierFor(cost), margin = net / cost;
+  if (net < t.floor) return { level: 0, label: 'Skip', tier: t, margin, reason: 'Profit is under the ' + money(t.floor, true) + ' minimum for items costing ' + t.label.toLowerCase() + '.' };
+  if (margin * 100 >= t.great) return { level: 3, label: 'Great', tier: t, margin, reason: '' };
+  if (margin * 100 >= t.good) return { level: 2, label: 'Good', tier: t, margin, reason: '' };
+  if (margin * 100 >= t.okay) return { level: 1, label: 'Okay', tier: t, margin, reason: '' };
+  return { level: 0, label: 'Skip', tier: t, margin, reason: 'Margin is under ' + t.okay + '% for items costing ' + t.label.toLowerCase() + '.' };
+}
+function calcAt(price, cat, pk, cost) {
+  const fee = feeFor(price, pk), ship = shipOut(cat, pk), takeHome = round2(price - fee - ship);
+  const hasCost = cost > 0, net = hasCost ? round2(takeHome - cost) : null;
+  return { price, fee, ship, takeHome, net, margin: hasCost ? net / cost : null, rating: rate(cost, net) };
+}
+function maxBuy(takeHome, minLevel) {
+  if (!(takeHome > 0)) return null;
+  const step = Math.max(0.25, takeHome / 4000);
+  for (let c = takeHome; c > 0.5; c -= step) { const r = rate(c, takeHome - c); if (r.level !== null && r.level >= minLevel) return Math.floor(c * 100) / 100; }
+  return null;
+}
+const ratingPill = r => h('span', { class: 'pill ' + (r.level === null ? 'lna' : 'l' + r.level) }, r.label);
+
+/* ============ loose JSON parsing ============ */
+function extractBalanced(text) {
+  const start = text.search(/[\[{]/);
+  if (start < 0) return null;
+  let depth = 0, inStr = false, esc = false;
+  for (let i = start; i < text.length; i++) {
+    const ch = text[i];
+    if (inStr) { if (esc) esc = false; else if (ch === '\\') esc = true; else if (ch === '"') inStr = false; continue; }
+    if (ch === '"') inStr = true;
+    else if (ch === '{' || ch === '[') depth++;
+    else if (ch === '}' || ch === ']') { depth--; if (depth === 0) return { text: text.slice(start, i + 1), start, end: i + 1, complete: true }; }
+  }
+  return { text: text.slice(start), start, end: text.length, complete: false };
+}
+function parseLooseJson(raw) {
+  const fixes = [];
+  if (typeof raw !== 'string' || !raw.trim()) return { ok: false, error: 'Nothing to read. Paste the AI answer first.', fixes };
+  const strict = raw.replace(/^﻿/, '').trim();
+  try { return { ok: true, data: JSON.parse(strict), fixes }; } catch (e) { /* fall through */ }
+  let t = strict;
+  if (/```/.test(t)) { t = t.replace(/```[a-zA-Z]*\s*/g, '').replace(/```/g, ''); fixes.push('Removed the code fence'); }
+  const before = t;
+  t = t.replace(/【[^】]*】/g, '').replace(/:contentReference\[[^\]]*\]\{[^}]*\}/g, '').replace(/\[oaicite:[^\]]*\]/g, '').replace(/[^]*/g, '');
+  if (t !== before) fixes.push('Removed citation markers');
+  const ex = extractBalanced(t);
+  if (!ex) return { ok: false, error: 'No JSON found. The answer should start with { and end with }. Ask the AI to reply with the JSON object only.', fixes };
+  if (!ex.complete) return { ok: false, error: 'The JSON looks cut off (it never closes). Ask the AI to continue or to return fewer comps, then paste the full result.', fixes };
+  if (ex.start > 0 && t.slice(0, ex.start).trim()) fixes.push('Ignored text before the JSON');
+  if (t.slice(ex.end).trim()) fixes.push('Ignored text after the JSON');
+  let body = ex.text;
+  const attempt = b => { try { return { ok: true, data: JSON.parse(b) }; } catch (e) { return { ok: false, e }; } };
+  let r = attempt(body);
+  if (r.ok) return { ok: true, data: r.data, fixes };
+  const noTrail = body.replace(/,\s*([}\]])/g, '$1');
+  if (noTrail !== body) { r = attempt(noTrail); if (r.ok) { fixes.push('Fixed trailing commas'); return { ok: true, data: r.data, fixes }; } }
+  const curly = noTrail.replace(/[“”„]/g, '"').replace(/[‘’]/g, "'");
+  r = attempt(curly);
+  if (r.ok) { fixes.push('Fixed curly quotes'); return { ok: true, data: r.data, fixes }; }
+  const loose = curly.replace(/\bNaN\b|\bundefined\b/g, 'null');
+  r = attempt(loose);
+  if (r.ok) { fixes.push('Replaced undefined values with null'); return { ok: true, data: r.data, fixes }; }
+  return { ok: false, error: 'The JSON has a syntax error (' + (r.e && r.e.message ? r.e.message : 'unknown') + '). Ask the AI to fix the JSON and reply with the object only.', fixes };
+}
+
+/* ============ validation ============ */
+function validateComp(c, idx, label) {
+  const out = { warnings: [], reject: null, comp: null };
+  if (!c || typeof c !== 'object' || Array.isArray(c)) { out.reject = 'not an object'; return out; }
+  const type = typeof c.type === 'string' ? c.type.trim().toLowerCase() : '';
+  if (type !== 'sold' && type !== 'active') { out.reject = 'type must be "sold" or "active"'; return out; }
+  const price = toNum(c.price);
+  if (!(price > 0)) { out.reject = 'price is missing or not a number'; return out; }
+  if (typeof c.price === 'string') out.warnings.push(label + ' ' + (idx + 1) + ': price was text, converted to a number');
+  let url = null;
+  if (c.url !== null && c.url !== undefined && c.url !== '') { url = safeUrl(c.url); if (!url) out.warnings.push(label + ' ' + (idx + 1) + ': link ignored (must start with http:// or https://)'); }
+  let source = str(c.source, 60);
+  if (!source && url) { try { source = new URL(url).hostname.replace(/^www\./, ''); } catch (e) {} }
+  if (!source) { source = 'Unknown'; out.warnings.push(label + ' ' + (idx + 1) + ': no source name'); }
+  let ship = toNum(c.shipping); if (ship !== null && ship < 0) ship = null;
+  const vm = typeof c.variant_match === 'string' ? c.variant_match.trim().toLowerCase() : '';
+  const date = toDate(c.date);
+  if (type === 'sold' && !date) out.warnings.push(label + ' ' + (idx + 1) + ': sold comp has no date');
+  out.comp = { type, source, title: str(c.title, 160) || '', url, price: round2(price), shipping: ship === null ? null : round2(ship), condition: str(c.condition, 60), variant_match: ['exact', 'close', 'different', 'unknown'].includes(vm) ? vm : 'unknown', date, notes: str(c.notes, 200) };
+  return out;
+}
+function cleanFlags(arr, allowed) {
+  if (!Array.isArray(arr)) return [];
+  const seen = new Set();
+  arr.forEach(f => { if (typeof f === 'string') { const k = f.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40); if (k && (!allowed || allowed.includes(k))) seen.add(k); } });
+  return [...seen].slice(0, 8);
+}
+function markAuto(comps) {
+  for (const type of ['sold', 'active']) {
+    const grp = comps.filter(c => c.type === type && c.variant_match !== 'different');
+    const tot = grp.map(c => c.price + (c.shipping || 0)).sort(asc);
+    let lo = -Infinity, hi = Infinity;
+    if (tot.length >= 4) { const q1 = quantile(tot, 0.25), q3 = quantile(tot, 0.75), iqr = q3 - q1; lo = q1 - 1.5 * iqr; hi = q3 + 1.5 * iqr; if (iqr === 0) { lo = q1 * 0.5; hi = q3 * 2; } }
+    else if (tot.length === 3) { const m = median(tot); lo = m * 0.5; hi = m * 2; }
+    grp.forEach(c => { const v = c.price + (c.shipping || 0); if (v < lo || v > hi) { c.include = false; c.auto = 'Price outlier'; } });
+  }
+  comps.forEach(c => { if (c.variant_match === 'different') { c.include = false; c.auto = 'Different variant'; } else if (c.include === undefined) c.include = true; });
+}
+function validateResearch(data) {
+  const res = { comps: [], rejected: [], warnings: [], errors: [], meta: {} };
+  if (Array.isArray(data)) data = { comps: data };
+  if (!data || typeof data !== 'object') { res.errors.push('The JSON must be an object with a "comps" list.'); return res; }
+  if (data.kind === 'deals' || (Array.isArray(data.deals) && !data.comps)) { res.errors.push('This is a deal-scan result. Import it on the Deal feed page instead.'); return res; }
+  if (!Array.isArray(data.comps)) { res.errors.push('The JSON has no "comps" list.'); return res; }
+  const seen = new Set();
+  data.comps.forEach((c, i) => {
+    const v = validateComp(c, i, 'Comp');
+    v.warnings.forEach(w => res.warnings.push(w));
+    if (v.reject) { res.rejected.push('Comp ' + (i + 1) + ': ' + v.reject); return; }
+    const key = v.comp.url || [v.comp.source, v.comp.price, v.comp.title, v.comp.date].join('|');
+    if (seen.has(key)) { res.rejected.push('Comp ' + (i + 1) + ': duplicate of an earlier comp'); return; }
+    seen.add(key); res.comps.push(v.comp);
+  });
+  markAuto(res.comps);
+  res.meta = { item: str(data.item, 160), scan_date: toDate(data.scan_date), risk_flags: cleanFlags(data.risk_flags, GENERAL_RISKS), agent_notes: str(data.agent_notes, 500), limitations: str(data.limitations, 500) };
+  if (data.schema_version && data.schema_version !== SCHEMA) res.warnings.push('Schema version is "' + String(data.schema_version).slice(0, 20) + '", expected "' + SCHEMA + '". Reading it anyway.');
+  return res;
+}
+function validateDeals(data) {
+  const res = { deals: [], rejected: [], warnings: [], errors: [] };
+  if (Array.isArray(data)) data = { deals: data };
+  if (!data || typeof data !== 'object') { res.errors.push('The JSON must be an object with a "deals" list.'); return res; }
+  if (data.kind === 'research' || (Array.isArray(data.comps) && !data.deals)) { res.errors.push('This is a price-check result. Paste it on the Price check page instead.'); return res; }
+  if (!Array.isArray(data.deals)) { res.errors.push('The JSON has no "deals" list.'); return res; }
+  const scanDate = toDate(data.scan_date) || todayISO();
+  data.deals.forEach((d, i) => {
+    const n = 'Deal ' + (i + 1);
+    if (!d || typeof d !== 'object') { res.rejected.push(n + ': not an object'); return; }
+    const item = str(d.item, 140);
+    if (!item) { res.rejected.push(n + ': no item name'); return; }
+    const url = safeUrl(d.url);
+    if (!url) { res.rejected.push(n + ' (' + item.slice(0, 40) + '): missing or unsafe link'); return; }
+    const lp = toNum(d.listing_price);
+    if (!(lp > 0)) { res.rejected.push(n + ' (' + item.slice(0, 40) + '): listing price missing'); return; }
+    let ship = toNum(d.shipping); if (ship === null || ship < 0) { ship = 0; res.warnings.push(n + ': shipping unknown, counted as $0'); }
+    const ev = [];
+    (Array.isArray(d.resale_evidence) ? d.resale_evidence : []).slice(0, 12).forEach((e, j) => { const v = validateComp(e, j, n + ' evidence'); v.warnings.forEach(w => res.warnings.push(w)); if (v.comp) ev.push(v.comp); });
+    let est = toNum(d.est_resale_price);
+    if (!(est > 0)) {
+      const soldEv = ev.filter(e => e.type === 'sold').map(e => e.price + (e.shipping || 0)).sort(asc);
+      if (soldEv.length) { est = median(soldEv); res.warnings.push(n + ': no resale estimate, used the median of its sold evidence'); }
+      else { res.rejected.push(n + ' (' + item.slice(0, 40) + '): no resale estimate and no sold evidence'); return; }
+    }
+    const cat = typeof d.category === 'string' && CATS[d.category.trim()] ? d.category.trim() : 'other';
+    const conf = typeof d.confidence === 'string' && ['low', 'medium', 'high'].includes(d.confidence.trim().toLowerCase()) ? d.confidence.trim().toLowerCase() : 'low';
+    const key = url.replace(/#.*$/, '');
+    res.deals.push({ id: 'd_' + hashStr(key), key, item, category: cat, source: str(d.source, 60) || (function () { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return 'Unknown'; } })(), url, listing_price: round2(lp), shipping: round2(ship), condition: str(d.condition, 60), est_resale_price: round2(est), evidence: ev, confidence: conf, risk_flags: cleanFlags(d.risk_flags, DEAL_RISKS), notes: str(d.notes, 240), found_at: toDate(d.found_at) || scanDate });
+  });
+  return res;
+}
+function mergeDeals(incoming) {
+  const now = Date.now(); let added = 0, updated = 0;
+  incoming.forEach(n => {
+    const ex = deals.find(d => d.id === n.id);
+    if (ex) { Object.assign(ex, { listing_price: n.listing_price, shipping: n.shipping, est_resale_price: n.est_resale_price, evidence: n.evidence, confidence: n.confidence, risk_flags: n.risk_flags, notes: n.notes, condition: n.condition, lastSeen: now }); updated++; }
+    else { n.status = 'new'; n.firstSeen = now; n.lastSeen = now; deals.push(n); added++; }
+  });
+  saveDeals();
+  return { added, updated };
+}
+
+/* ============ analysis ============ */
+function analyze(rep) {
+  const tot = c => c.price + (c.shipping || 0);
+  const used = rep.comps.filter(c => c.include);
+  const sold = used.filter(c => c.type === 'sold').map(tot).sort(asc);
+  const act = used.filter(c => c.type === 'active').map(tot).sort(asc);
+  const hair = S.activeHaircut / 100;
+  let basis = 'none', market = null, quick = null, patient = null;
+  if (sold.length >= 3) { basis = 'sold'; market = median(sold); quick = quantile(sold, 0.25); patient = quantile(sold, 0.75); }
+  else if (sold.length > 0 && act.length > 0) { basis = 'mixed'; const sm = median(sold), am = median(act) * (1 - hair); market = (sm + am) / 2; quick = Math.min(sm, am); patient = Math.max(sm, median(act) * (1 - hair / 2)); }
+  else if (sold.length > 0) { basis = 'thin'; market = median(sold); quick = sold.length > 1 ? sold[0] : market * 0.92; patient = sold.length > 1 ? sold[sold.length - 1] : market * 1.05; }
+  else if (act.length > 0) { basis = 'active'; const am = median(act) * (1 - hair); market = am; quick = Math.min(quantile(act, 0.25) * (1 - hair), am * 0.97); patient = median(act); }
+  if (market !== null) { market = round2(market); quick = round2(Math.min(quick, market)); patient = round2(Math.max(patient, market)); }
+  const cat = rep.category, pk = rep.platform || S.defaultPlatform[cat] || 'ebay', cost = rep.cost > 0 ? rep.cost : 0;
+  const an = { basis, market, quick, patient, soldCount: sold.length, activeCount: act.length, usedCount: used.length, excluded: rep.comps.length - used.length, pk, cost };
+  if (market !== null) {
+    an.at = { quick: calcAt(quick, cat, pk, cost), market: calcAt(market, cat, pk, cost), patient: calcAt(patient, cat, pk, cost) };
+    an.maxBuy = { great: maxBuy(an.at.market.takeHome, 3), good: maxBuy(an.at.market.takeHome, 2), okay: maxBuy(an.at.market.takeHome, 1) };
+    an.platforms = Object.keys(S.platforms).map(k => ({ key: k, label: S.platforms[k].label, calc: calcAt(market, cat, k, cost) }));
+  }
+  const reasons = []; let score = 0;
+  const sc = an.soldCount, ac = an.activeCount;
+  const sPts = sc >= 6 ? 40 : sc >= 4 ? 34 : sc === 3 ? 28 : sc === 2 ? 18 : sc === 1 ? 10 : 0;
+  score += sPts; reasons.push(sc + ' sold comp' + (sc === 1 ? '' : 's') + ' used (+' + sPts + ')');
+  const aPts = ac >= 3 ? 8 : ac >= 1 ? 4 : 0;
+  if (aPts) { score += aPts; reasons.push(ac + ' asking-price comp' + (ac === 1 ? '' : 's') + ' used (+' + aPts + ')'); }
+  const srcs = new Set(used.map(c => c.source.toLowerCase())).size;
+  const srcPts = srcs >= 3 ? 10 : srcs === 2 ? 6 : 0;
+  if (srcPts) { score += srcPts; reasons.push(srcs + ' different sources (+' + srcPts + ')'); } else reasons.push('Only one source (+0)');
+  if (used.length) {
+    const w = { exact: 1, close: 0.6, unknown: 0.25, different: 0 };
+    const m = used.reduce((a, c) => a + w[c.variant_match], 0) / used.length, mp = Math.round(15 * m);
+    score += mp; reasons.push('Variant match ' + Math.round(m * 100) + '% (+' + mp + ')');
+  }
+  const soldDated = used.filter(c => c.type === 'sold' && c.date);
+  if (soldDated.length) {
+    const recent = soldDated.filter(c => Date.now() - isoToTs(c.date) <= 60 * DAY).length / soldDated.length, rp = Math.round(10 * recent);
+    score += rp; reasons.push(Math.round(recent * 100) + '% of dated sales are from the last 60 days (+' + rp + ')');
+    an.staleShare = soldDated.filter(c => Date.now() - isoToTs(c.date) > 90 * DAY).length / soldDated.length;
+  }
+  const ver = used.filter(c => c.verified).length;
+  if (ver >= 2) { score += 10; reasons.push(ver + ' comps you verified by opening the link (+10)'); } else if (ver === 1) { score += 5; reasons.push('1 comp you verified (+5)'); } else reasons.push('No comps verified yet. Open a few links and tick "Checked" (+0)');
+  if (sold.length >= 3) {
+    const spread = (quantile(sold, 0.75) - quantile(sold, 0.25)) / median(sold); an.spread = spread;
+    if (spread > 0.4) { score -= 10; reasons.push('Sold prices vary a lot (−10)'); } else if (spread > 0.25) { score -= 5; reasons.push('Sold prices vary somewhat (−5)'); }
+  }
+  if (sc === 0) { if (score > 39) reasons.push('Capped at Low: no sold comps'); score = Math.min(score, 39); }
+  else if (sc < 3) { if (score > 59) reasons.push('Capped at Medium: fewer than 3 sold comps'); score = Math.min(score, 59); }
+  score = Math.max(0, Math.min(100, score));
+  an.confidence = { score, label: score >= 70 ? 'High' : score >= 45 ? 'Medium' : 'Low', reasons };
+  const flags = [];
+  if (market !== null) {
+    if (sc === 0) flags.push(['bad', 'No sold data: these are asking prices, so real sale prices are likely lower']);
+    else if (sc < 3) flags.push(['warn', 'Thin sold data: fewer than 3 sold comps']);
+    if (an.spread > 0.4) flags.push(['warn', 'Wide price spread']);
+    if (an.staleShare > 0.5) flags.push(['warn', 'Most sales are older than 90 days']);
+    if (used.length && used.filter(c => c.variant_match === 'unknown').length / used.length > 0.5) flags.push(['warn', 'Variant match is unknown for most comps']);
+    if (an.excluded > 0) flags.push(['', an.excluded + ' comp' + (an.excluded === 1 ? '' : 's') + ' left out']);
+  }
+  an.flags = flags;
+  return an;
+}
+
+function dealMetrics(d) {
+  const cat = d.category, pk = S.defaultPlatform[cat] || 'ebay';
+  const cost = round2(d.listing_price + (d.shipping || 0));
+  const soldEv = (d.evidence || []).filter(e => e.type === 'sold').map(e => e.price + (e.shipping || 0)).sort(asc);
+  const actEv = (d.evidence || []).filter(e => e.type === 'active').length;
+  let est = d.est_resale_price, adjusted = false, evMedian = null, discounted = false;
+  if (soldEv.length >= 2) { evMedian = median(soldEv); if (est > evMedian * 1.2) { est = round2(evMedian); adjusted = true; } }
+  else if (soldEv.length === 0) { est = round2(est * (1 - S.activeHaircut / 100)); discounted = true; }
+  const c = calcAt(est, cat, pk, cost);
+  let score = 0; const reasons = [];
+  const ns = soldEv.length;
+  const sp = ns >= 3 ? 45 : ns === 2 ? 32 : ns === 1 ? 16 : 0; score += sp; reasons.push(ns + ' sold price' + (ns === 1 ? '' : 's') + ' as evidence (+' + sp + ')');
+  const ap = actEv >= 2 ? 10 : actEv === 1 ? 5 : 0; if (ap) { score += ap; reasons.push(actEv + ' asking price' + (actEv === 1 ? '' : 's') + ' as evidence (+' + ap + ')'); }
+  const srcs = new Set((d.evidence || []).map(e => e.source.toLowerCase())).size; if (srcs >= 2) { score += 10; reasons.push(srcs + ' evidence sources (+10)'); }
+  score += 10; reasons.push('Has a listing link (+10)');
+  const ag = { high: 15, medium: 8, low: 0 }[d.confidence]; score += ag; reasons.push('Agent said ' + d.confidence + ' confidence (+' + ag + ')');
+  const sev = (d.risk_flags || []).filter(f => SEVERE.has(f)).length; if (sev) { const pen = Math.min(20, sev * 8); score -= pen; reasons.push('Serious risk flags (−' + pen + ')'); }
+  if (ns === 0) score = Math.min(score, 39); else if (ns < 3) score = Math.min(score, 64);
+  score = Math.max(0, Math.min(100, score));
+  return { cost, est, adjusted, discounted, evMedian, pk, calc: c, rating: c.rating, soldEv: ns, actEv, confidence: { score, label: score >= 70 ? 'High' : score >= 45 ? 'Medium' : 'Low', reasons } };
+}
+
+/* ============ prompts ============ */
+const RESEARCH_TEMPLATE = '{\n  "schema_version": "flipscout-1",\n  "kind": "research",\n  "item": "<the item as you understood it>",\n  "scan_date": "YYYY-MM-DD",\n  "comps": [\n    {\n      "type": "sold" or "active",\n      "source": "<site name, e.g. eBay>",\n      "title": "<listing title>",\n      "url": "<https link, or null>",\n      "price": <number in USD>,\n      "shipping": <number in USD, 0 for free shipping, or null>,\n      "condition": "<text or null>",\n      "variant_match": "exact" or "close" or "different" or "unknown",\n      "date": "<YYYY-MM-DD sold date or listing date, or null>",\n      "notes": "<short note or null>"\n    }\n  ],\n  "risk_flags": ["<one of the allowed flags>"],\n  "agent_notes": "<one or two sentences>",\n  "limitations": "<what you could not find or verify>"\n}';
+const DEALS_TEMPLATE = '{\n  "schema_version": "flipscout-1",\n  "kind": "deals",\n  "scan_date": "YYYY-MM-DD",\n  "deals": [\n    {\n      "item": "<listing title>",\n      "category": "pokemon_single" or "pokemon_sealed" or "laptop" or "furniture",\n      "source": "<site name>",\n      "url": "<https link to the live listing>",\n      "listing_price": <number in USD>,\n      "shipping": <number in USD, 0 for free shipping, or null>,\n      "condition": "<text or null>",\n      "est_resale_price": <number in USD>,\n      "resale_evidence": [\n        { "type": "sold" or "active", "source": "<site name>", "title": "<title>", "url": "<https link or null>", "price": <number>, "shipping": <number or null>, "date": "<YYYY-MM-DD or null>" }\n      ],\n      "confidence": "low" or "medium" or "high",\n      "risk_flags": ["<one of the allowed flags>"],\n      "notes": "<short note or null>",\n      "found_at": "YYYY-MM-DD"\n    }\n  ]\n}';
+const OUTPUT_RULES = 'OUTPUT FORMAT\nReply with ONE JSON object and nothing else. No introduction, no closing remarks, no markdown, no code fences, no citation or footnote markers inside the JSON, straight double quotes only, no trailing commas. Numbers must be plain numbers (24.99, not "$24.99"). Use null for anything you do not know. Follow this shape exactly:\n\n';
+
+function buildResearchPrompt(catKey, d, cost) {
+  const C = CATS[catKey];
+  const lines = C.fields.map(f => d[f.k] ? '- ' + f.l + ': ' + d[f.k] : null).filter(Boolean).join('\n');
+  return [
+    'You are a resale market researcher with live web search. Search the web now. Do not answer from memory.',
+    '',
+    "TODAY'S DATE: " + todayISO(),
+    '',
+    'ITEM TO RESEARCH',
+    'Category: ' + C.label,
+    lines,
+    '',
+    'WHERE TO LOOK (use at least 3 different sources when you can)',
+    C.sources.map(s => '- ' + s).join('\n'),
+    '',
+    'RULES',
+    '1. Find 6 to 12 comparable listings for this exact item.',
+    '2. Prefer SOLD (completed) prices from the last 90 days. Label every comp "sold" or "active". "active" means an asking price on a live listing. Never label an asking price as sold. If a source only shows asking prices, use "active". If you find no sold prices at all, say so in "limitations".',
+    '3. For every comp, set "variant_match" by comparing it with the item above: "exact", "close", "different" or "unknown". ' + C.rules.join(' '),
+    '4. Never invent a listing, price, date or link. Only include comps you actually opened or saw in the search results. If you have no link for a comp, set "url" to null.',
+    '5. "price" is the item price in USD. "shipping" is what the buyer pays for shipping (0 if free). Dates are YYYY-MM-DD.',
+    '6. "risk_flags" may only use these values: ' + GENERAL_RISKS.join(', ') + '. Use an empty list if none apply.',
+    '',
+    OUTPUT_RULES + RESEARCH_TEMPLATE
+  ].join('\n');
+}
+function buildDealsPrompt(items) {
+  const list = items.map((w, i) => (i + 1) + '. Category: ' + catLabel(w.category) + ' (' + w.category + ') | Looking for: ' + w.query + (w.maxPrice ? ' | Max price: $' + w.maxPrice : '') + (w.notes ? ' | Notes: ' + w.notes : '')).join('\n');
+  return [
+    'You are a resale deal hunter with live web search. Search the web now. Do not answer from memory.',
+    '',
+    "TODAY'S DATE: " + todayISO(),
+    '',
+    'WATCHLIST',
+    list,
+    '',
+    'RULES',
+    '1. For each watchlist item, find up to 5 listings that are for sale right now at a price well below what that exact item usually resells for. Skip anything that is not clearly a bargain.',
+    '2. Estimate the resale price from SOLD prices when you can. Put 2 to 5 pieces of evidence in "resale_evidence" (type "sold" or "active", with source, link, price and date). Prefer sold. Never label an asking price as sold.',
+    '3. Only include listings you could actually open, with a clear price and a working link. Skip lots you cannot value, ads, and anything that looks like a scam.',
+    '4. Never invent a listing, price, date or link. Use null for anything you do not know.',
+    '5. Match the exact variant (set and card number, chip and storage, size and brand). If you are unsure, add "variant_ambiguity" to "risk_flags".',
+    '6. "risk_flags" may only use these values: ' + DEAL_RISKS.join(', ') + '. Use "price_too_good" when the price looks suspiciously low.',
+    '7. "listing_price" and "shipping" are what the buyer pays. "found_at" is today\'s date.',
+    '',
+    OUTPUT_RULES + DEALS_TEMPLATE
+  ].join('\n');
+}
+
+/* ============ sample data (clearly fake) ============ */
+function sampleResearch() {
+  const c = (type, source, title, price, ship, vm, ago, cond, url) => ({ type, source: source + ' (sample)', title: '[SAMPLE] ' + title, url: 'https://example.com/sample/' + url, price, shipping: ship, condition: cond, variant_match: vm, date: daysAgoISO(ago), notes: 'Sample data for the demo. Not a real listing.' });
+  const T = 'MacBook Air 13 M2 8GB 256GB';
+  return { schema_version: SCHEMA, kind: 'research', item: 'MacBook Air 13-inch (2022, Apple M2, 8 GB, 256 GB)', scan_date: todayISO(),
+    comps: [
+      c('sold', 'eBay', T + ' Space Gray', 615, 0, 'exact', 4, 'Used, very good', 's1'),
+      c('sold', 'eBay', T + ' Midnight', 640, 0, 'exact', 9, 'Used, very good', 's2'),
+      c('sold', 'Swappa', T + ' Silver', 598, 0, 'exact', 15, 'Good', 's3'),
+      c('sold', 'eBay', T + ' Starlight', 655, 12, 'exact', 22, 'Like new', 's4'),
+      c('sold', 'Swappa', T + ' Space Gray', 625, 0, 'exact', 31, 'Good', 's5'),
+      c('sold', 'eBay', 'MacBook Air 13 M2 8GB 256GB, no charger', 610, 0, 'close', 38, 'Used', 's6'),
+      c('sold', 'eBay', T + ' cracked screen, for repair', 395, 0, 'exact', 11, 'For parts', 's7'),
+      c('sold', 'eBay', 'MacBook Air 13 M2 16GB 512GB', 920, 0, 'different', 12, 'Very good', 's8'),
+      c('active', 'Swappa', T + ' Silver', 689, 0, 'exact', 2, 'Good', 'a1'),
+      c('active', 'eBay', T + ' Midnight', 719, 0, 'exact', 3, 'Very good', 'a2'),
+      c('active', 'Back Market', T + ' refurbished', 699, 0, 'close', 1, 'Excellent', 'a3'),
+      c('active', 'Facebook Marketplace', T + ' local pickup', 640, 0, 'exact', 5, 'Used', 'a4')
+    ],
+    risk_flags: ['locked_device_risk'], agent_notes: 'Sample: most sold comps cluster between $600 and $655.', limitations: 'Sample data only. These are not real listings.' };
+}
+function sampleDeals() {
+  const ev = (type, source, price, ago, ship) => ({ type, source: source + ' (sample)', title: '[SAMPLE] comparable', url: 'https://example.com/sample/ev', price, shipping: ship || 0, variant_match: 'exact', date: daysAgoISO(ago), notes: null });
+  const mk = (item, category, source, id, lp, sh, est, evid, conf, flags, notes) => ({ item: '[SAMPLE] ' + item, category, source: source + ' (sample)', url: 'https://example.com/sample/deal-' + id, listing_price: lp, shipping: sh, condition: null, est_resale_price: est, resale_evidence: evid, confidence: conf, risk_flags: flags, notes: notes + ' Sample data for the demo.', found_at: todayISO() });
+  return { schema_version: SCHEMA, kind: 'deals', scan_date: todayISO(), deals: [
+    mk('MacBook Air 13 M2 8GB 256GB, good condition', 'laptop', 'Facebook Marketplace', 1, 480, 0, 640, [ev('sold', 'eBay', 615, 4), ev('sold', 'Swappa', 598, 15), ev('sold', 'eBay', 640, 9), ev('active', 'Swappa', 689, 2)], 'high', [], 'Local pickup. Seller has the original charger.'),
+    mk('Pokémon Elite Trainer Box, factory sealed', 'pokemon_sealed', 'Mercari', 2, 38, 6, 68, [ev('sold', 'eBay', 64, 6), ev('sold', 'TCGplayer', 66, 3), ev('sold', 'eBay', 61, 12)], 'medium', ['resealed_risk'], 'Photos show clean shrink wrap.'),
+    mk('Charizard ex 125/197 raw, near mint', 'pokemon_single', 'eBay', 3, 12, 1.25, 17, [ev('sold', 'eBay', 15.5, 5), ev('sold', 'TCGplayer', 16, 8)], 'medium', [], 'Small absolute profit, so the rating shows why dollars matter.'),
+    mk('Gray 3-seat sofa, barely used', 'furniture', 'Craigslist', 4, 60, 0, 260, [ev('active', 'Facebook Marketplace', 300, 2), ev('active', 'Craigslist', 280, 6), ev('active', 'OfferUp', 320, 4)], 'low', ['local_pickup_only'], 'No sold data for furniture, so this is an asking-price estimate.'),
+    mk('MacBook Pro 14 M3 Pro, brand new', 'laptop', 'OfferUp', 5, 600, 0, 1500, [ev('active', 'eBay', 1650, 3)], 'low', ['price_too_good', 'possible_fake', 'stock_photo_only'], 'Only stock photos. Price is far below market.')
+  ] };
+}
+
+/* ============ app state ============ */
+const ui = { reportHost: null, promptHost: null, pasteStatus: null, currentReportId: null, dealsStatus: null, dealPrompt: null };
+
+function route() {
+  purge();
+  const name = (location.hash.replace(/^#\/?/, '') || 'research').split('/')[0];
+  const pages = { research: pageResearch, deals: pageDeals, history: pageHistory, settings: pageSettings, guide: pageGuide };
+  const key = pages[name] ? name : 'research';
+  const main = $('#main');
+  clear(main).append(pages[key]());
+  document.querySelectorAll('nav a').forEach(a => { if (a.dataset.r === key) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+  const titles = { research: 'Price check', deals: 'Deal feed', history: 'History', settings: 'Settings', guide: 'Guide' };
+  document.title = titles[key] + ' | FlipScout';
+}
+
+function statusBox(kind, title, lines, extra) {
+  return h('div', { class: 'notice ' + (kind || ''), role: 'status' }, h('strong', null, title), lines && lines.length ? h('ul', null, lines.map(l => h('li', null, l))) : null, extra || null);
+}
+function stepHead(n, title, sub) {
+  return h('div', { class: 'step' }, h('span', { class: 'n', 'aria-hidden': 'true' }, n), h('div', null, h('h2', null, title), sub ? h('p', { class: 'sub' }, sub) : null));
+}
+function copyRow(textFn, label) {
+  return h('button', { type: 'button', class: 'btn accent', onclick: () => copyText(textFn()) }, label || 'Copy');
+}
+function readFileInto(input, textarea, onDone) {
+  const f = input.files && input.files[0]; if (!f) return;
+  if (f.size > 2 * 1024 * 1024) { toast('That file is over 2 MB. Use a smaller JSON file.', 'bad'); input.value = ''; return; }
+  const rd = new FileReader();
+  rd.onload = () => { textarea.value = String(rd.result || ''); input.value = ''; if (onDone) onDone(); };
+  rd.onerror = () => toast('Could not read that file.', 'bad');
+  rd.readAsText(f);
+}
+
+/* ============ page: price check ============ */
+function pageResearch() {
+  const root = h('div', { class: 'stack' });
+  root.append(h('section', { class: 'lead' }, h('h1', null, 'Price check an item'), h('p', null, 'Find out what an item really sells for, then work out the most you should pay for it. Any AI tool with web search does the research. FlipScout checks the comps and does the math.')));
+  root.append(formCard());
+  ui.promptHost = h('div');
+  root.append(ui.promptHost);
+  root.append(pasteCard());
+  ui.reportHost = h('div');
+  root.append(ui.reportHost);
+  if (ui.currentReportId) refreshReport(false);
+  return root;
+}
+
+function formCard() {
+  const card = h('section', { class: 'card', 'aria-labelledby': 'form-h' });
+  const head = stepHead(1, 'Describe the item', 'Exact details give better comparisons. A wrong variant is the most common way to get a bad price.');
+  head.querySelector('h2').id = 'form-h';
+  card.append(head);
+  const fieldsHost = h('div', { class: 'grid gap-t', id: 'f-fields' });
+  const noteHost = h('div');
+  const err = h('p', { id: 'f-err', class: 'small', role: 'alert', style: 'color:var(--skip);min-height:1.2em;margin:8px 0 0' });
+  const catSel = h('select', { id: 'f-cat' }, CAT_KEYS.map(k => h('option', { value: k, selected: k === draft.category }, CATS[k].label)));
+  const cost = h('input', { id: 'f-cost', type: 'number', min: '0', step: '0.01', inputmode: 'decimal', placeholder: 'e.g. 450', value: draft.cost });
+  const plat = h('select', { id: 'f-plat' }, Object.keys(S.platforms).map(k => h('option', { value: k }, S.platforms[k].label)));
+  function setPlat() { plat.value = draft.platform && S.platforms[draft.platform] ? draft.platform : (S.defaultPlatform[draft.category] || 'ebay'); }
+  function drawFields() {
+    clear(fieldsHost); clear(noteHost);
+    const C = CATS[draft.category];
+    C.fields.forEach(f => {
+      const id = 'f-' + f.k, req = C.req.includes(f.k);
+      let el;
+      if (f.t === 'select') { el = h('select', { id }, f.o.map(o => h('option', { value: o, selected: draft.values[f.k] === o }, o))); if (!draft.values[f.k]) draft.values[f.k] = f.o[0]; }
+      else el = h('input', { id, type: 'text', placeholder: f.ph || '', value: draft.values[f.k] || '', autocomplete: 'off' });
+      el.addEventListener('input', () => { draft.values[f.k] = el.value; el.removeAttribute('aria-invalid'); saveDraft(); });
+      fieldsHost.append(h('div', null, h('label', { for: id }, f.l + (req ? ' (required)' : '')), el));
+    });
+    if (C.experimental) noteHost.append(h('div', { class: 'notice warn gap-t' }, h('strong', null, 'Experimental category'), 'Furniture mostly sells locally, so sold prices are rarely public. Expect asking-price estimates with low confidence.'));
+    setPlat();
+  }
+  catSel.addEventListener('change', () => { draft.category = catSel.value; draft.values = {}; draft.platform = ''; saveDraft(); drawFields(); });
+  cost.addEventListener('input', () => { draft.cost = cost.value; saveDraft(); });
+  plat.addEventListener('change', () => { draft.platform = plat.value; saveDraft(); });
+  card.append(h('div', { class: 'grid' }, h('div', null, h('label', { for: 'f-cat' }, 'Category'), catSel)), noteHost, fieldsHost,
+    h('div', { class: 'grid gap-t' },
+      h('div', null, h('label', { for: 'f-cost' }, 'What you paid or plan to pay ($)', h('span', { class: 'hint' }, 'Optional. Needed to rate the flip.')), cost),
+      h('div', null, h('label', { for: 'f-plat' }, 'Where you would sell it'), plat)),
+    err,
+    h('div', { class: 'row gap-t' },
+      h('button', { type: 'button', class: 'btn accent', onclick: () => makePrompt(err) }, 'Make the research prompt'),
+      h('button', { type: 'button', class: 'btn secondary', onclick: () => loadSample() }, 'Try with sample data'),
+      h('button', { type: 'button', class: 'btn secondary', onclick: () => { draft = { category: draft.category, values: {}, cost: '', platform: '' }; saveDraft(); cost.value = ''; drawFields(); err.textContent = ''; } }, 'Clear form')));
+  drawFields();
+  return card;
+}
+function makePrompt(errEl) {
+  const C = CATS[draft.category];
+  errEl.textContent = '';
+  const missing = C.req.filter(k => !(draft.values[k] || '').trim());
+  if (missing.length) {
+    missing.forEach(k => { const el = $('#f-' + k); if (el) el.setAttribute('aria-invalid', 'true'); });
+    const f = C.fields.find(x => x.k === missing[0]); errEl.textContent = 'Enter ' + f.l.toLowerCase() + ' first.';
+    const el = $('#f-' + missing[0]); if (el) el.focus(); return;
+  }
+  const text = buildResearchPrompt(draft.category, draft.values, draft.cost);
+  const box = h('textarea', { class: 'promptbox', readOnly: true, 'aria-label': 'Research prompt', rows: '16' }); box.value = text;
+  clear(ui.promptHost).append(h('section', { class: 'card' },
+    stepHead(2, 'Run the research with an AI tool', 'Paste this prompt into ChatGPT, Gemini or Claude. Turn web search on and use a fresh chat.'),
+    box,
+    h('div', { class: 'row gap-t' }, copyRow(() => text, 'Copy prompt'), h('span', { class: 'small' }, 'Then copy the AI answer and paste it in step 3.'))));
+  ui.promptHost.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function loadSample() {
+  draft = { category: 'laptop', values: { model: 'MacBook Air 13-inch', year: '2022', chip: 'Apple M2', ram: '8 GB', storage: '256 GB', battery: '', condition: 'Very good', accessories: 'Charger included', lock: 'No activation lock' }, cost: '450', platform: 'ebay' };
+  saveDraft();
+  route();
+  const ta = $('#paste-r'); ta.value = JSON.stringify(sampleResearch(), null, 2);
+  clear(ui.pasteStatus).append(statusBox('', 'Sample data loaded', ['These comps are made up for the demo. Press "Analyze results" to see how the page works.']));
+  ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function pasteCard() {
+  const ta = h('textarea', { id: 'paste-r', 'aria-label': 'AI result JSON', placeholder: '{ "schema_version": "flipscout-1", "kind": "research", ... }', rows: '8' });
+  ui.pasteStatus = h('div', { class: 'gap-t', 'aria-live': 'polite' });
+  const file = h('input', { type: 'file', accept: '.json,.txt,application/json,text/plain', 'aria-label': 'Load a JSON file' });
+  file.addEventListener('change', () => readFileInto(file, ta));
+  return h('section', { class: 'card' },
+    stepHead(3, 'Paste the result', 'Paste the JSON the AI returned. Messy output is cleaned up where it is safe to do so, and bad records are reported instead of breaking the page.'),
+    ta,
+    h('div', { class: 'row gap-t' }, h('button', { type: 'button', class: 'btn', onclick: () => analyzePaste(ta) }, 'Analyze results'), h('span', { class: 'btn secondary filebtn' }, 'Load a .json file', file)),
+    ui.pasteStatus);
+}
+function importSummary(v, p, noun) {
+  const kind = v.rejected.length || v.warnings.length || p.fixes.length ? 'warn' : 'ok';
+  const lines = [];
+  if (p.fixes.length) lines.push('Cleaned up automatically: ' + p.fixes.join('; ') + '.');
+  const detail = v.rejected.concat(v.warnings);
+  const extra = detail.length ? h('details', null, h('summary', null, 'Show ' + detail.length + ' detail' + (detail.length === 1 ? '' : 's')), h('ul', null, detail.map(x => h('li', null, x)))) : null;
+  return { kind, lines, extra };
+}
+function analyzePaste(ta) {
+  const host = clear(ui.pasteStatus);
+  const p = parseLooseJson(ta.value);
+  if (!p.ok) { host.append(statusBox('bad', 'Could not read that', [p.error])); return; }
+  const v = validateResearch(p.data);
+  if (v.errors.length) { host.append(statusBox('bad', 'Could not use that', v.errors)); return; }
+  if (!v.comps.length) { host.append(statusBox('bad', 'No usable comps', ['Every record was rejected. Ask the AI to follow the format exactly.'], v.rejected.length ? h('details', null, h('summary', null, 'Why records were rejected'), h('ul', null, v.rejected.map(x => h('li', null, x)))) : null)); return; }
+  const C = CATS[draft.category];
+  const title = C.title(draft.values).trim() || v.meta.item || 'Untitled item';
+  const cost = parseFloat(draft.cost);
+  const rep = { id: uid('r'), createdAt: Date.now(), scanDate: v.meta.scan_date || todayISO(), category: draft.category, title, details: Object.assign({}, draft.values), cost: cost > 0 ? cost : 0, platform: draft.platform || S.defaultPlatform[draft.category] || 'ebay', comps: v.comps, riskFlags: v.meta.risk_flags, agentNotes: v.meta.agent_notes, limitations: v.meta.limitations, pinned: false };
+  reports.unshift(rep); saveReports();
+  ui.currentReportId = rep.id;
+  const s = importSummary(v, p);
+  host.append(statusBox(s.kind, 'Read ' + v.comps.length + ' comp' + (v.comps.length === 1 ? '' : 's') + (v.rejected.length ? ', rejected ' + v.rejected.length : ''), s.lines, s.extra));
+  refreshReport(true);
+}
+function refreshReport(scroll) {
+  if (!ui.reportHost) return;
+  const rep = reports.find(r => r.id === ui.currentReportId);
+  clear(ui.reportHost);
+  if (!rep) return;
+  ui.reportHost.append(renderReport(rep));
+  if (scroll) ui.reportHost.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function priceStrip(rep, an) {
+  const all = rep.comps.map(c => c.price + (c.shipping || 0));
+  const pts = all.concat([an.quick, an.patient, an.market]); if (an.cost > 0) pts.push(an.cost);
+  let lo = Math.min(...pts), hi = Math.max(...pts); const padv = (hi - lo) * 0.08 || hi * 0.1; lo = Math.max(0, lo - padv); hi += padv;
+  const W = 720, H = 150, L = 64, R = 16, x = v => L + (v - lo) / (hi - lo) * (W - L - R);
+  const g = [];
+  g.push(svg('rect', { class: 'band', x: x(an.quick), y: 14, width: Math.max(2, x(an.patient) - x(an.quick)), height: 92 }));
+  g.push(svg('line', { class: 'mkt', x1: x(an.market), x2: x(an.market), y1: 10, y2: 110 }));
+  g.push(svg('text', { x: x(an.market), y: 8, 'text-anchor': 'middle' }, 'List at ' + money(an.market, true)));
+  g.push(svg('text', { x: 6, y: 42 }, 'Sold'), svg('text', { x: 6, y: 82 }, 'Asking'));
+  g.push(svg('line', { class: 'axis', x1: L, x2: W - R, y1: 118, y2: 118 }));
+  [lo, (lo + hi) / 2, hi].forEach((v, i) => g.push(svg('text', { x: x(v), y: 134, 'text-anchor': i === 0 ? 'start' : i === 2 ? 'end' : 'middle' }, money(v, true))));
+  const cnt = { sold: 0, active: 0 };
+  rep.comps.forEach(c => {
+    const j = cnt[c.type]++ % 3, cy = (c.type === 'sold' ? 34 : 74) + (j - 1) * 11;
+    const dot = svg('circle', { class: (c.type === 'sold' ? 'sold' : 'act') + (c.include ? '' : ' off'), cx: x(c.price + (c.shipping || 0)), cy, r: 5.5 });
+    dot.append(svg('title', {}, c.type + ' ' + money(c.price + (c.shipping || 0)) + ' ' + c.source + (c.include ? '' : ' (left out)')));
+    g.push(dot);
+  });
+  if (an.cost > 0) { const cx = x(an.cost); g.push(svg('path', { class: 'cost', d: 'M' + cx + ' 112 l-6 -10 h12 z' }), svg('text', { x: cx, y: 98, 'text-anchor': 'middle', style: 'fill:var(--skip);font-weight:700' }, 'Your cost ' + money(an.cost, true))); }
+  const desc = 'Price spread chart. Sold comps and asking prices from ' + money(Math.min(...all), true) + ' to ' + money(Math.max(...all), true) + '. Suggested list price ' + money(an.market, true) + '.';
+  return svg('svg', { class: 'strip', viewBox: '0 0 ' + W + ' ' + H, role: 'img', 'aria-label': desc }, g);
+}
+
+function renderReport(rep) {
+  const an = analyze(rep), C = CATS[rep.category] || { label: 'Other' }, plat = S.platforms[an.pk] || { label: an.pk };
+  const sec = h('section', { class: 'card', 'aria-labelledby': 'rep-h' });
+  const title = h('h2', { id: 'rep-h' }, rep.title);
+  sec.append(h('div', { class: 'row', style: 'justify-content:space-between;align-items:flex-start' },
+    h('div', null, title, h('p', { class: 'sub', style: 'margin-bottom:0' }, C.label + '. Researched ' + ageText(rep.createdAt) + '. Saved in History for ' + S.retentionDays + ' days' + (rep.pinned ? ', pinned so it stays.' : '.'))),
+    h('div', { class: 'row' },
+      h('label', { style: 'display:flex;gap:6px;align-items:center;margin:0;font-weight:600' }, h('input', { type: 'checkbox', checked: !!rep.pinned, onchange: e => { rep.pinned = e.target.checked; saveReports(); refreshReport(false); } }), 'Keep beyond ' + S.retentionDays + ' days'),
+      h('button', { type: 'button', class: 'btn secondary small', onclick: () => copyText(summaryText(rep, an)) }, 'Copy summary'))));
+
+  const costIn = h('input', { type: 'number', min: '0', step: '0.01', inputmode: 'decimal', value: rep.cost > 0 ? rep.cost : '', placeholder: 'e.g. 450', id: 'w-cost' });
+  costIn.addEventListener('change', () => { rep.cost = parseFloat(costIn.value) > 0 ? parseFloat(costIn.value) : 0; saveReports(); refreshReport(false); });
+  const platIn = h('select', { id: 'w-plat' }, Object.keys(S.platforms).map(k => h('option', { value: k, selected: k === an.pk }, S.platforms[k].label)));
+  platIn.addEventListener('change', () => { rep.platform = platIn.value; saveReports(); refreshReport(false); });
+  sec.append(h('div', { class: 'whatif gap-t' }, h('div', null, h('label', { for: 'w-cost' }, 'What you paid or would pay ($)'), costIn), h('div', null, h('label', { for: 'w-plat' }, 'Where you would sell it'), platIn)));
+
+  if (an.market === null) {
+    sec.append(h('div', { class: 'notice warn' }, h('strong', null, 'No comps are switched on'), 'Tick at least one comp in the table below, or run the research again.'));
+  } else {
+    const t = an.at, basisText = { sold: 'median of ' + an.soldCount + ' sold comps', mixed: 'blend of sold and discounted asking prices', thin: 'only ' + an.soldCount + ' sold comp' + (an.soldCount === 1 ? '' : 's'), active: 'asking prices minus ' + S.activeHaircut + '%, no sold data' }[an.basis];
+    const tag = (cls, k, calc, sub) => h('div', { class: 'tag ' + cls }, h('div', { class: 'k' }, k), h('div', { class: 'v' }, money(calc.price, cls === 'main' ? true : undefined)), h('div', { class: 's' }, sub));
+    const sub = c => rep.cost > 0 ? 'Profit ' + money(c.net) + ' (' + pctText(c.margin) + ')' : 'You keep ' + money(c.takeHome) + ' after fees and shipping';
+    sec.append(h('div', { class: 'tags', role: 'group', 'aria-label': 'Suggested prices' },
+      tag('', 'Quick sale', t.quick, sub(t.quick)), tag('main', 'List it at', t.market, sub(t.market) + '. Based on the ' + basisText + '.'), tag('', 'Patient price', t.patient, sub(t.patient))));
+    sec.append(h('div', { class: 'gap-t' }, priceStrip(rep, an)));
+
+    const cols = h('div', { class: 'cols gap-t' });
+    const left = h('div');
+    const m = t.market;
+    if (rep.cost > 0) {
+      left.append(h('p', { class: 'verdict' }, 'Paying ', h('b', null, money(rep.cost)), ' and selling at ', h('b', null, money(m.price)), ' on ' + plat.label + ': fees ' + money(m.fee) + ', shipping ' + money(m.ship) + ', so you keep ', h('b', null, money(m.takeHome)), ' and profit ', h('b', null, money(m.net) + ' (' + pctText(m.margin) + ')'), '. ', ratingPill(m.rating)));
+      left.append(h('p', { class: 'small' }, m.rating.level === 0 ? m.rating.reason : 'Rated against items costing ' + m.rating.tier.label.toLowerCase() + ': Great ' + m.rating.tier.great + '%+, Good ' + m.rating.tier.good + '%+, Okay ' + m.rating.tier.okay + '%+, and at least ' + money(m.rating.tier.floor, true) + ' profit.'));
+    } else {
+      left.append(h('p', { class: 'verdict' }, 'Enter what you paid above to rate the flip. At this price you keep ', h('b', null, money(m.takeHome)), ' before cost, after fees and shipping.'));
+    }
+    left.append(h('h3', { class: 'subhead gap-t' }, 'The most you should pay'), h('div', { class: 'tablewrap' }, h('table', null,
+      h('thead', null, h('tr', null, h('th', null, 'To get a rating of'), h('th', { class: 'num' }, 'Pay no more than'))),
+      h('tbody', null, [['Great', an.maxBuy.great], ['Good', an.maxBuy.good], ['Okay', an.maxBuy.okay]].map(r => h('tr', null, h('td', null, r[0]), h('td', { class: 'num' }, r[1] === null ? 'Not reachable at this price' : money(r[1]))))))));
+    left.append(h('p', { class: 'small', style: 'margin-top:6px' }, 'Based on selling at ' + money(m.price) + ' on ' + plat.label + '.'));
+    const right = h('div');
+    const cf = an.confidence;
+    right.append(h('h3', { class: 'subhead' }, 'Confidence: ' + cf.label + ' (' + cf.score + '/100)'), h('div', { class: 'meter', role: 'img', 'aria-label': 'Confidence ' + cf.score + ' out of 100' }, h('i', { style: 'width:' + cf.score + '%' })));
+    right.append(h('details', { class: 'gap-t' }, h('summary', null, 'How this is calculated'), h('ul', { class: 'small' }, cf.reasons.map(r => h('li', null, r)))));
+    const chips = h('div', { class: 'gap-t' });
+    an.flags.forEach(f => chips.append(h('span', { class: 'chip ' + f[0] }, f[1])));
+    (rep.riskFlags || []).forEach(f => chips.append(h('span', { class: 'chip ' + (SEVERE.has(f) ? 'bad' : 'warn') }, humanize(f))));
+    if (chips.children.length) right.append(h('h3', { class: 'subhead gap-t' }, 'Watch out for'), chips);
+    cols.append(left, right); sec.append(cols);
+
+    sec.append(h('h3', { class: 'subhead gap-t' }, 'Compare where to sell'), h('div', { class: 'tablewrap' }, h('table', null,
+      h('thead', null, h('tr', null, ['Platform', 'Fees', 'Shipping', 'You keep', 'Profit', 'Margin', 'Rating'].map((x, i) => h('th', { class: i > 0 && i < 6 ? 'num' : '' }, x)))),
+      h('tbody', null, an.platforms.map(p => { const best = Math.max(...an.platforms.map(q => q.calc.takeHome)) === p.calc.takeHome; return h('tr', { class: p.key === an.pk ? 'hl' : '' }, h('td', null, p.label, p.key === an.pk ? h('span', { class: 'chip', style: 'margin-left:6px' }, 'selected') : null, best && an.platforms.length > 1 ? h('span', { class: 'chip', style: 'margin-left:6px' }, 'keeps the most') : null), h('td', { class: 'num' }, money(p.calc.fee)), h('td', { class: 'num' }, money(p.calc.ship)), h('td', { class: 'num' }, money(p.calc.takeHome)), h('td', { class: 'num' }, rep.cost > 0 ? money(p.calc.net) : '—'), h('td', { class: 'num' }, rep.cost > 0 ? pctText(p.calc.margin) : '—'), h('td', null, ratingPill(p.calc.rating))); })))));
+    sec.append(h('p', { class: 'small', style: 'margin-top:6px' }, 'Fee rates are editable assumptions. Check each site\'s current fee page in Settings before you rely on them.'));
+  }
+
+  const rows = rep.comps.map((c, i) => {
+    const chk = h('input', { type: 'checkbox', checked: !!c.include, 'aria-label': 'Use comp ' + (i + 1), onchange: e => { c.include = e.target.checked; saveReports(); refreshReport(false); } });
+    const ver = c.url ? h('input', { type: 'checkbox', checked: !!c.verified, 'aria-label': 'Checked comp ' + (i + 1), onchange: e => { c.verified = e.target.checked; saveReports(); refreshReport(false); } }) : h('span', { class: 'small' }, 'no link');
+    return h('tr', { class: c.include ? '' : 'off' }, h('td', null, chk), h('td', null, c.type === 'sold' ? 'Sold' : 'Asking'), h('td', null, c.source), h('td', null, c.url ? extLink(c.url, (c.title || 'Open listing').slice(0, 70)) : (c.title || 'No title').slice(0, 70), c.auto ? h('span', { class: 'chip warn', style: 'margin-left:6px' }, c.auto + ', left out') : null), h('td', { class: 'num' }, money(c.price)), h('td', { class: 'num' }, c.shipping === null ? '?' : money(c.shipping)), h('td', null, c.variant_match), h('td', null, c.date || '—'), h('td', null, ver));
+  });
+  sec.append(h('h3', { class: 'subhead gap-t' }, 'Comps (' + rep.comps.length + ')'), h('p', { class: 'small', style: 'margin:0 0 8px' }, 'Untick any comp you do not trust and the numbers update. Open a few links and tick "Checked" to raise confidence. AI can invent listings, so spot-check.'),
+    h('div', { class: 'tablewrap' }, h('table', null, h('thead', null, h('tr', null, ['Use', 'Type', 'Source', 'Listing', 'Price', 'Ship', 'Match', 'Date', 'Checked'].map((x, i) => h('th', { class: i === 4 || i === 5 ? 'num' : '' }, x)))), h('tbody', null, rows))));
+  if (rep.agentNotes || rep.limitations) sec.append(h('div', { class: 'notice gap-t' }, rep.agentNotes ? h('p', null, h('b', null, 'AI notes: '), rep.agentNotes) : null, rep.limitations ? h('p', { style: 'margin:0' }, h('b', null, 'What the AI could not verify: '), rep.limitations) : null));
+  return sec;
+}
+function summaryText(rep, an) {
+  const lines = ['FlipScout price check: ' + rep.title, 'Researched ' + new Date(rep.createdAt).toLocaleDateString() + ' on ' + (S.platforms[an.pk] ? S.platforms[an.pk].label : an.pk)];
+  if (an.market === null) lines.push('No usable comps.');
+  else {
+    lines.push('Quick sale ' + money(an.quick) + ' | List at ' + money(an.market) + ' | Patient ' + money(an.patient));
+    lines.push('Comps used: ' + an.soldCount + ' sold, ' + an.activeCount + ' asking. Confidence: ' + an.confidence.label + ' (' + an.confidence.score + '/100)');
+    lines.push('Most to pay for Good: ' + (an.maxBuy.good === null ? 'n/a' : money(an.maxBuy.good)) + ', for Great: ' + (an.maxBuy.great === null ? 'n/a' : money(an.maxBuy.great)));
+    if (rep.cost > 0) lines.push('At your cost of ' + money(rep.cost) + ': profit ' + money(an.at.market.net) + ' (' + pctText(an.at.market.margin) + '), rated ' + an.at.market.rating.label);
+  }
+  lines.push('Estimates only. Verify listings and fees before buying or selling.');
+  return lines.join('\n');
+}
+
+/* ============ page: deal feed ============ */
+function pageDeals() {
+  const root = h('div', { class: 'stack' });
+  root.append(h('section', { class: 'lead' }, h('h1', null, 'Deal feed'), h('p', null, 'List what you flip. An AI agent searches for listings priced well under their resale value, and FlipScout re-checks the math, rates each one and keeps a 30 day history.')));
+  root.append(watchCard(), scanImportCard(), filterCard());
+  const feed = h('div', { id: 'feed' });
+  root.append(feed);
+  ui.feed = feed;
+  renderFeed();
+  return root;
+}
+function watchCard() {
+  const list = h('div');
+  function drawList() {
+    clear(list);
+    if (!watch.length) { list.append(h('p', { class: 'small' }, 'Nothing on your watchlist yet. Add what you want the agent to look for.')); return; }
+    list.append(h('div', { class: 'tablewrap' }, h('table', null, h('thead', null, h('tr', null, ['Category', 'Looking for', 'Max price', 'Notes', ''].map(x => h('th', null, x)))),
+      h('tbody', null, watch.map(w => h('tr', null, h('td', null, catLabel(w.category)), h('td', null, w.query), h('td', { class: 'num' }, w.maxPrice ? money(w.maxPrice) : '—'), h('td', null, w.notes || ''), h('td', null, h('button', { type: 'button', class: 'btn secondary small', onclick: () => { watch = watch.filter(x => x.id !== w.id); saveWatch(); drawList(); promptHost.hidden = true; } }, 'Remove'))))))));
+  }
+  const cat = h('select', { id: 'w-cat', 'aria-label': 'Watchlist category' }, CAT_KEYS.map(k => h('option', { value: k }, CATS[k].label)));
+  const q = h('input', { type: 'text', id: 'w-q', placeholder: 'e.g. MacBook Air M2, 16 GB, under $600', 'aria-label': 'What to look for' });
+  const mp = h('input', { type: 'number', min: '0', step: '1', id: 'w-max', placeholder: 'optional', 'aria-label': 'Max price' });
+  const nt = h('input', { type: 'text', id: 'w-notes', placeholder: 'optional', 'aria-label': 'Notes' });
+  const err = h('p', { class: 'small', role: 'alert', style: 'color:var(--skip);margin:6px 0 0;min-height:1.2em' });
+  const promptHost = h('div', { class: 'gap-t', hidden: true });
+  function add() {
+    err.textContent = '';
+    if (!q.value.trim()) { err.textContent = 'Describe what to look for first.'; q.focus(); return; }
+    if (watch.length >= 12) { err.textContent = 'Keep the watchlist to 12 items or fewer so the scan stays accurate.'; return; }
+    const mx = parseFloat(mp.value);
+    watch.push({ id: uid('w'), category: cat.value, query: q.value.trim().slice(0, 120), maxPrice: mx > 0 ? mx : null, notes: nt.value.trim().slice(0, 120) });
+    saveWatch(); q.value = ''; mp.value = ''; nt.value = ''; drawList(); promptHost.hidden = true;
+  }
+  function showPrompt() {
+    if (!watch.length) { err.textContent = 'Add at least one watchlist item first.'; return; }
+    const text = buildDealsPrompt(watch);
+    const box = h('textarea', { class: 'promptbox', readOnly: true, rows: '14', 'aria-label': 'Scan prompt' }); box.value = text;
+    clear(promptHost).append(box, h('div', { class: 'row gap-t' }, copyRow(() => text, 'Copy scan prompt'), h('span', { class: 'small' }, 'Paste it into an AI tool with web search, then import the result below.')));
+    promptHost.hidden = false; promptHost.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  drawList();
+  return h('details', { class: 'card', open: watch.length === 0 || undefined },
+    h('summary', { style: 'cursor:pointer;font-weight:750;font-size:19px' }, 'Watchlist and scan prompt'),
+    h('p', { class: 'sub', style: 'margin-top:8px' }, 'Keep it short and specific. Exact models and a price ceiling give the agent better targets.'),
+    list,
+    h('div', { class: 'grid gap-t' }, h('div', null, h('label', { for: 'w-cat' }, 'Category'), cat), h('div', null, h('label', { for: 'w-q' }, 'Looking for'), q), h('div', null, h('label', { for: 'w-max' }, 'Max price ($)'), mp), h('div', null, h('label', { for: 'w-notes' }, 'Notes'), nt)),
+    err,
+    h('div', { class: 'row gap-t' }, h('button', { type: 'button', class: 'btn secondary', onclick: add }, 'Add to watchlist'), h('button', { type: 'button', class: 'btn accent', onclick: showPrompt }, 'Make the scan prompt')),
+    promptHost,
+    h('details', { class: 'gap-t' }, h('summary', { style: 'cursor:pointer;font-weight:650' }, 'Run the scan automatically every day'),
+      h('div', { class: 'prose small', style: 'margin-top:8px;color:var(--ink-2)' },
+        h('p', null, 'Most AI assistants can run a saved prompt on a schedule (for example ChatGPT Tasks, Gemini scheduled actions or Claude scheduled tasks; names and plan limits vary).'),
+        h('ol', null, h('li', null, 'Make the scan prompt above and copy it.'), h('li', null, 'Create a scheduled task in your AI tool, paste the prompt, and set it to run daily.'), h('li', null, 'Have it send you the answer, or open the latest answer yourself.'), h('li', null, 'Paste the JSON into "Import scan results" below. Duplicates are merged and old deals expire on their own.')),
+        h('p', null, 'A static web page cannot receive data from an agent on its own, so the paste step stays manual. A desktop version could watch a folder and import automatically.'))));
+}
+function scanImportCard() {
+  const ta = h('textarea', { id: 'paste-d', rows: '6', 'aria-label': 'Scan result JSON', placeholder: '{ "schema_version": "flipscout-1", "kind": "deals", ... }' });
+  const status = h('div', { class: 'gap-t', 'aria-live': 'polite' });
+  if (ui.dealsStatus) { status.append(ui.dealsStatus); ui.dealsStatus = null; }
+  const file = h('input', { type: 'file', accept: '.json,.txt,application/json,text/plain', 'aria-label': 'Load a JSON file' });
+  file.addEventListener('change', () => readFileInto(file, ta));
+  function run() {
+    clear(status);
+    const p = parseLooseJson(ta.value);
+    if (!p.ok) { status.append(statusBox('bad', 'Could not read that', [p.error])); return; }
+    const v = validateDeals(p.data);
+    if (v.errors.length) { status.append(statusBox('bad', 'Could not use that', v.errors)); return; }
+    if (!v.deals.length) { status.append(statusBox('bad', 'No usable deals', ['Every record was rejected.'], v.rejected.length ? h('details', null, h('summary', null, 'Why records were rejected'), h('ul', null, v.rejected.map(x => h('li', null, x)))) : null)); return; }
+    const r = mergeDeals(v.deals), s = importSummary(v, p);
+    ui.dealsStatus = statusBox(s.kind, 'Added ' + r.added + ' new, updated ' + r.updated + (v.rejected.length ? ', rejected ' + v.rejected.length : ''), s.lines, s.extra);
+    filters.status = 'active'; store.set('filters', filters);
+    route();
+  }
+  return h('details', { class: 'card', open: deals.length === 0 || ui.dealsStatus ? true : undefined },
+    h('summary', { style: 'cursor:pointer;font-weight:750;font-size:19px' }, 'Import scan results'),
+    h('p', { class: 'sub', style: 'margin-top:8px' }, 'Paste the JSON from your scan. Prices and profit are recalculated here, and resale estimates that are higher than their own sold evidence are lowered to match it.'),
+    ta, h('div', { class: 'row gap-t' }, h('button', { type: 'button', class: 'btn', onclick: run }, 'Import deals'), h('span', { class: 'btn secondary filebtn' }, 'Load a .json file', file), h('button', { type: 'button', class: 'btn secondary', onclick: () => { ta.value = JSON.stringify(sampleDeals(), null, 2); clear(status).append(statusBox('', 'Sample deals loaded', ['These listings are made up for the demo. Press "Import deals".'])); } }, 'Try with sample data')),
+    status);
+}
+const RATING_ORDER = { any: -1, okay: 1, good: 2, great: 3 };
+function filterCard() {
+  const f = filters;
+  const bind = (el, key) => { el.addEventListener(el.tagName === 'SELECT' || el.type === 'checkbox' ? 'change' : 'input', () => { f[key] = el.type === 'checkbox' ? el.checked : el.value; store.set('filters', f); renderFeed(); }); return el; };
+  const sel = (id, key, opts, label) => h('div', null, h('label', { for: id }, label), bind(h('select', { id }, opts.map(o => h('option', { value: o[0], selected: String(f[key]) === o[0] }, o[1]))), key));
+  const inp = (id, key, label, ph, type) => h('div', null, h('label', { for: id }, label), bind(h('input', { id, type: type || 'number', min: '0', step: 'any', inputmode: type === 'search' ? 'search' : 'decimal', placeholder: ph || '', value: f[key] }), key));
+  const sources = [...new Set(deals.map(d => d.source))].sort();
+  return h('section', { class: 'card', 'aria-label': 'Filters' },
+    h('div', { class: 'row', style: 'justify-content:space-between;margin-bottom:12px' }, h('h2', null, 'Filters'), h('button', { type: 'button', class: 'btn secondary small', onclick: () => { filters = defaultFilters(); store.set('filters', filters); route(); } }, 'Reset filters')),
+    h('div', { class: 'filters' },
+      inp('fl-q', 'q', 'Search', 'item name', 'search'),
+      sel('fl-cat', 'cat', [['all', 'All categories']].concat(CAT_KEYS.map(k => [k, CATS[k].label])).concat([['other', 'Other']]), 'Category'),
+      sel('fl-src', 'source', [['all', 'All sources']].concat(sources.map(s => [s, s])), 'Source'),
+      sel('fl-st', 'status', [['active', 'New and saved'], ['new', 'New'], ['saved', 'Saved'], ['bought', 'Bought'], ['dismissed', 'Dismissed'], ['all', 'Everything']], 'Status'),
+      inp('fl-mp', 'minProfit', 'Min profit ($)', '0'),
+      inp('fl-mm', 'minMargin', 'Min margin (%)', '0'),
+      inp('fl-mx', 'maxPrice', 'Max you pay ($)', 'any'),
+      sel('fl-rt', 'minRating', [['any', 'Any rating'], ['okay', 'Okay or better'], ['good', 'Good or better'], ['great', 'Great only']], 'Rating'),
+      sel('fl-cf', 'conf', [['any', 'Any confidence'], ['medium', 'Medium or higher'], ['high', 'High only']], 'Confidence'),
+      sel('fl-wi', 'within', [['all', 'Any time'], ['7', 'Last 7 days'], ['14', 'Last 14 days']], 'Found'),
+      sel('fl-so', 'sort', [['profit', 'Highest profit'], ['margin', 'Highest margin'], ['rating', 'Best rating'], ['new', 'Newest'], ['price', 'Lowest price']], 'Sort by'),
+      h('div', { style: 'display:flex;align-items:flex-end' }, h('label', { style: 'display:flex;gap:8px;align-items:center;margin:0 0 9px' }, bind(h('input', { type: 'checkbox', checked: !!f.hideRisk }), 'hideRisk'), 'Hide serious risk flags'))));
+}
+function renderFeed() {
+  const host = clear(ui.feed), f = filters;
+  const rows = deals.map(d => ({ d, m: dealMetrics(d) }));
+  const out = rows.filter(({ d, m }) => {
+    if (f.status === 'active' ? !(d.status === 'new' || d.status === 'saved') : f.status !== 'all' && d.status !== f.status) return false;
+    if (f.cat !== 'all' && d.category !== f.cat) return false;
+    if (f.source !== 'all' && d.source !== f.source) return false;
+    if (f.q && !d.item.toLowerCase().includes(String(f.q).toLowerCase())) return false;
+    if (f.minProfit !== '' && !(m.calc.net >= parseFloat(f.minProfit))) return false;
+    if (f.minMargin !== '' && !(m.calc.margin * 100 >= parseFloat(f.minMargin))) return false;
+    if (f.maxPrice !== '' && !(m.cost <= parseFloat(f.maxPrice))) return false;
+    if (f.minRating !== 'any' && !(m.rating.level >= RATING_ORDER[f.minRating])) return false;
+    if (f.conf === 'medium' && m.confidence.label === 'Low') return false;
+    if (f.conf === 'high' && m.confidence.label !== 'High') return false;
+    if (f.hideRisk && d.risk_flags.some(x => SEVERE.has(x))) return false;
+    if (f.within !== 'all' && Date.now() - (d.lastSeen || 0) > parseInt(f.within, 10) * DAY) return false;
+    return true;
+  });
+  const sorts = { profit: (a, b) => b.m.calc.net - a.m.calc.net, margin: (a, b) => b.m.calc.margin - a.m.calc.margin, rating: (a, b) => (b.m.rating.level - a.m.rating.level) || (b.m.calc.net - a.m.calc.net), new: (a, b) => (b.d.lastSeen || 0) - (a.d.lastSeen || 0), price: (a, b) => a.m.cost - b.m.cost };
+  out.sort(sorts[f.sort] || sorts.profit);
+  const expiring = deals.filter(d => d.status !== 'saved' && d.status !== 'bought' && (d.lastSeen || 0) < Date.now() - (S.retentionDays - 3) * DAY).length;
+  host.append(h('p', { class: 'small', role: 'status', style: 'margin:0 0 12px' }, 'Showing ' + out.length + ' of ' + deals.length + ' deals. Deals not seen for ' + S.retentionDays + ' days are removed unless you save them or mark them bought.' + (expiring ? ' ' + expiring + ' will expire within 3 days.' : '')));
+  if (!out.length) {
+    host.append(h('div', { class: 'card empty' }, deals.length ? [h('b', null, 'No deals match these filters'), 'Reset the filters or loosen one of them.'] : [h('b', null, 'No deals yet'), 'Make the scan prompt above, run it in an AI tool, then import the result. Or try the sample data.']));
+    return;
+  }
+  host.append(h('div', { class: 'deals' }, out.map(({ d, m }) => dealCard(d, m))));
+}
+function dealCard(d, m) {
+  const setStatus = s => { d.status = s; saveDeals(); renderFeed(); };
+  const btn = (label, s, cls) => h('button', { type: 'button', class: 'btn small ' + (cls || 'secondary'), onclick: () => setStatus(s) }, label);
+  const acts = h('div', { class: 'acts' });
+  if (d.status === 'new') acts.append(btn('Save', 'saved'), btn('Bought', 'bought'), btn('Dismiss', 'dismissed'));
+  else if (d.status === 'saved') acts.append(btn('Bought', 'bought'), btn('Unsave', 'new'), btn('Dismiss', 'dismissed'));
+  else if (d.status === 'bought') acts.append(btn('Not bought', 'saved'));
+  else acts.append(btn('Restore', 'new'));
+  const c = m.calc;
+  return h('article', { class: 'card deal status-' + d.status },
+    h('div', { class: 'top-r' }, h('span', { class: 'chip' }, catLabel(d.category)), h('span', null, m.confidence.label === 'Low' ? h('span', { class: 'chip bad', style: 'margin-right:6px' }, 'Low confidence') : null, ratingPill(m.rating))),
+    h('h3', null, d.item),
+    h('div', { class: 'small' }, extLink(d.url, 'View listing on ' + d.source), ' · found ' + ageText(d.lastSeen || Date.now())),
+    h('div', { class: 'nums' }, h('div', null, h('b', null, money(m.cost)), h('span', null, 'You pay' + (d.shipping ? ' (incl. ' + money(d.shipping) + ' ship)' : ''))), h('div', null, h('b', null, money(m.est)), h('span', null, 'Resale on ' + (S.platforms[m.pk] ? S.platforms[m.pk].label : m.pk))), h('div', null, h('b', { style: c.net < 0 ? 'color:var(--skip)' : '' }, money(c.net)), h('span', null, 'Profit (' + pctText(c.margin) + ')'))),
+    m.adjusted ? h('div', { class: 'notice warn small' }, 'The agent estimated ' + money(d.est_resale_price) + ', but its own sold evidence points to ' + money(m.evMedian) + '. The lower number is used.') : null,
+    m.discounted ? h('div', { class: 'notice warn small' }, 'No sold prices back this up, so the agent\'s ' + money(d.est_resale_price) + ' estimate is cut by ' + S.activeHaircut + '%.') : null,
+    h('div', { class: 'small' }, 'Fees ' + money(c.fee) + ', shipping ' + money(c.ship) + '. Evidence: ' + m.soldEv + ' sold, ' + m.actEv + ' asking. Confidence: ' + m.confidence.label + ' (' + m.confidence.score + ').'),
+    d.risk_flags.length ? h('div', null, d.risk_flags.map(f => h('span', { class: 'chip ' + (SEVERE.has(f) ? 'bad' : 'warn') }, humanize(f)))) : null,
+    d.notes ? h('p', { class: 'small', style: 'margin:0' }, d.notes) : null,
+    acts);
+}
+
+/* ============ page: history ============ */
+function pageHistory() {
+  const root = h('div', { class: 'stack' });
+  root.append(h('section', { class: 'lead' }, h('h1', null, 'History'), h('p', null, 'Your past price checks. They are removed after ' + S.retentionDays + ' days so storage stays small, unless you pin them. Deals have their own history in the Deal feed.')));
+  if (!reports.length) { root.append(h('div', { class: 'card empty' }, h('b', null, 'No price checks yet'), 'Run one on the Price check page and it will show up here.')); return root; }
+  const rows = reports.map(rep => {
+    const an = analyze(rep), left = Math.ceil((rep.createdAt + S.retentionDays * DAY - Date.now()) / DAY);
+    return h('tr', null,
+      h('td', null, h('b', null, rep.title), h('div', { class: 'small' }, catLabel(rep.category))),
+      h('td', null, ageText(rep.createdAt)),
+      h('td', { class: 'num' }, an.market === null ? '—' : money(an.market)),
+      h('td', null, an.market === null ? '—' : an.confidence.label),
+      h('td', null, an.market === null ? '—' : ratingPill(an.at.market.rating)),
+      h('td', null, rep.pinned ? 'Pinned' : (left <= 0 ? 'Expires today' : left + ' days left')),
+      h('td', null, h('div', { class: 'row' },
+        h('button', { type: 'button', class: 'btn small', onclick: () => { draft = { category: rep.category, values: Object.assign({}, rep.details), cost: rep.cost > 0 ? String(rep.cost) : '', platform: rep.platform }; saveDraft(); ui.currentReportId = rep.id; location.hash = '#/research'; if (location.hash === '#/research') route(); } }, 'Open'),
+        h('button', { type: 'button', class: 'btn secondary small', onclick: () => { rep.pinned = !rep.pinned; saveReports(); route(); } }, rep.pinned ? 'Unpin' : 'Pin'),
+        confirmButton('Delete', 'Click again', () => { reports = reports.filter(r => r.id !== rep.id); if (ui.currentReportId === rep.id) ui.currentReportId = null; saveReports(); route(); }))));
+  });
+  root.append(h('div', { class: 'tablewrap' }, h('table', null, h('thead', null, h('tr', null, ['Item', 'Checked', 'List at', 'Confidence', 'Rating', 'Keeps for', ''].map((x, i) => h('th', { class: i === 2 ? 'num' : '' }, x)))), h('tbody', null, rows))));
+  return root;
+}
+
+/* ============ page: settings ============ */
+function pageSettings() {
+  const root = h('div', { class: 'stack' });
+  root.append(h('section', { class: 'lead' }, h('h1', null, 'Settings'), h('p', null, 'These numbers drive every calculation. Fee rates change, so treat the defaults as starting points and check each site\'s current fee page.')));
+  const saved = () => { saveSettings(); toast('Saved'); };
+  const numIn = (get, set, o) => { const el = h('input', { type: 'number', min: o.min === undefined ? '0' : o.min, max: o.max, step: o.step || 'any', value: get(), 'aria-label': o.label }); el.addEventListener('change', () => { let v = parseFloat(el.value); if (!isFinite(v) || v < (o.min || 0)) v = get(); if (o.max !== undefined && v > o.max) v = o.max; set(v); el.value = v; saved(); }); return el; };
+
+  root.append(h('section', { class: 'card' }, h('h2', null, 'Selling fees'), h('p', { class: 'sub' }, 'Percent of the sale price, plus a fixed amount per order. The minimum applies when the percent fee comes out lower.'),
+    h('div', { class: 'tablewrap' }, h('table', null, h('thead', null, h('tr', null, ['Platform', 'Fee (%)', 'Per order ($)', 'Minimum fee ($)'].map(x => h('th', null, x)))), h('tbody', null, Object.keys(S.platforms).map(k => h('tr', null, h('td', null, S.platforms[k].label), h('td', null, numIn(() => S.platforms[k].pct, v => S.platforms[k].pct = v, { max: 100, label: S.platforms[k].label + ' fee percent' })), h('td', null, numIn(() => S.platforms[k].fixed, v => S.platforms[k].fixed = v, { label: S.platforms[k].label + ' fixed fee' })), h('td', null, numIn(() => S.platforms[k].minFee, v => S.platforms[k].minFee = v, { label: S.platforms[k].label + ' minimum fee' })))))))));
+
+  root.append(h('section', { class: 'card' }, h('h2', null, 'Shipping and default platform'), h('p', { class: 'sub' }, 'What it costs you to ship one item, and where each category usually sells. Local pickup has no shipping cost.'),
+    h('div', { class: 'tablewrap' }, h('table', null, h('thead', null, h('tr', null, ['Category', 'Shipping cost ($)', 'Sells on'].map(x => h('th', null, x)))), h('tbody', null, CAT_KEYS.concat(['other']).map(k => {
+      const sel = h('select', { 'aria-label': catLabel(k) + ' default platform' }, Object.keys(S.platforms).map(p => h('option', { value: p, selected: S.defaultPlatform[k] === p }, S.platforms[p].label)));
+      sel.addEventListener('change', () => { S.defaultPlatform[k] = sel.value; saved(); });
+      return h('tr', null, h('td', null, catLabel(k)), h('td', null, numIn(() => S.shipping[k], v => S.shipping[k] = v, { label: catLabel(k) + ' shipping cost' })), h('td', null, sel));
+    }))))));
+
+  const tierWarn = h('p', { class: 'small', role: 'status', style: 'margin:8px 0 0' });
+  const checkTiers = () => { const bad = S.tiers.some(t => !(t.great >= t.good && t.good >= t.okay)); tierWarn.textContent = bad ? 'Check the thresholds: Great should be at least Good, and Good at least Okay.' : ''; };
+  root.append(h('section', { class: 'card' }, h('h2', null, 'Profit rating'), h('p', { class: 'sub' }, 'Margin means profit divided by what you paid. Cheap items need a higher margin, and every range has a minimum dollar profit, so a 10% win on a $40 game (about $4) is a Skip while 10% on a $900 laptop is Good.'),
+    h('div', { class: 'tablewrap' }, h('table', null, h('thead', null, h('tr', null, ['You pay', 'Great (%+)', 'Good (%+)', 'Okay (%+)', 'Minimum profit ($)'].map(x => h('th', null, x)))), h('tbody', null, S.tiers.map(t => h('tr', null, h('td', null, t.label), ['great', 'good', 'okay', 'floor'].map(f => h('td', null, (() => { const el = numIn(() => t[f], v => t[f] = v, { label: t.label + ' ' + f }); el.addEventListener('change', checkTiers); return el; })()))))))), tierWarn));
+
+  root.append(h('section', { class: 'card' }, h('h2', null, 'Pricing and history'),
+    h('div', { class: 'grid gap-t' },
+      h('div', null, h('label', null, 'Asking-price discount (%)', h('span', { class: 'hint' }, 'Used when there are no sold comps. Items usually sell below their asking price.'), numIn(() => S.activeHaircut, v => S.activeHaircut = v, { max: 60, label: 'Asking price discount percent' }))),
+      h('div', null, h('label', null, 'Keep history for (days)', h('span', { class: 'hint' }, 'Older price checks and unsaved deals are deleted automatically.'), numIn(() => S.retentionDays, v => S.retentionDays = Math.round(v), { min: 1, max: 365, step: '1', label: 'Retention days' }))))));
+
+  const used = store.bytes(), pct = Math.min(100, used / (5 * 1024 * 1024) * 100);
+  const importIn = h('input', { type: 'file', accept: '.json,application/json', 'aria-label': 'Restore from a backup file' });
+  const dataMsg = h('div', { class: 'gap-t', 'aria-live': 'polite' });
+  importIn.addEventListener('change', () => {
+    const f = importIn.files && importIn.files[0]; if (!f) return;
+    if (f.size > 4 * 1024 * 1024) { toast('That backup is over 4 MB.', 'bad'); importIn.value = ''; return; }
+    const rd = new FileReader();
+    rd.onload = () => { try { const r = restoreBackup(JSON.parse(String(rd.result))); clear(dataMsg).append(statusBox('ok', 'Backup restored', [r])); } catch (e) { clear(dataMsg).append(statusBox('bad', 'That file is not a FlipScout backup', [String(e.message || e)])); } importIn.value = ''; };
+    rd.readAsText(f);
+  });
+  root.append(h('section', { class: 'card' }, h('h2', null, 'Your data'), h('p', { class: 'sub' }, canPersist ? 'Everything is stored in this browser only. Nothing is sent to a server. Clearing site data erases it, so export a backup now and then.' : 'Browser storage is blocked here, so nothing will be kept after you close the tab. Export a backup before you leave.'),
+    h('p', { class: 'small', style: 'margin:0 0 6px' }, 'Storage used: ' + (used / 1024).toFixed(1) + ' KB of about 5,000 KB'), h('div', { class: 'meter', role: 'img', 'aria-label': 'Storage used ' + pct.toFixed(1) + ' percent' }, h('i', { style: 'width:' + Math.max(1, pct) + '%' })),
+    h('div', { class: 'row gap-t' }, h('button', { type: 'button', class: 'btn', onclick: exportBackup }, 'Download backup'), h('span', { class: 'btn secondary filebtn' }, 'Restore from backup', importIn),
+      h('button', { type: 'button', class: 'btn secondary', onclick: () => { S = clone(DEFAULTS); saveSettings(); toast('Settings reset'); route(); } }, 'Reset settings'),
+      confirmButton('Delete all my data', 'Click again to delete', () => { ['settings', 'reports', 'deals', 'watchlist', 'draft', 'filters'].forEach(k => store.remove(k)); S = clone(DEFAULTS); reports = []; deals = []; watch = []; draft = { category: 'laptop', values: {}, cost: '', platform: '' }; filters = defaultFilters(); ui.currentReportId = null; toast('All data deleted'); route(); })),
+    dataMsg));
+  return root;
+}
+function exportBackup() {
+  const data = { app: 'flipscout', version: 1, exportedAt: new Date().toISOString(), settings: S, reports, deals, watchlist: watch };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = h('a', { href: URL.createObjectURL(blob), download: 'flipscout-backup-' + todayISO() + '.json' });
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  toast('Backup downloaded');
+}
+function restoreBackup(b) {
+  if (!b || b.app !== 'flipscout' || !Array.isArray(b.reports) || !Array.isArray(b.deals)) throw new Error('Missing FlipScout backup fields.');
+  const seenR = new Set(reports.map(r => r.id)), seenD = new Set(deals.map(d => d.id));
+  let nr = 0, nd = 0;
+  b.reports.forEach(r => { if (r && r.id && Array.isArray(r.comps) && !seenR.has(r.id)) { r.comps = r.comps.filter(c => c && isNum(c.price)).map(c => Object.assign({}, c, { url: safeUrl(c.url) })); reports.push(r); nr++; } });
+  b.deals.forEach(d => { if (d && d.id && isNum(d.listing_price) && !seenD.has(d.id)) { d.url = safeUrl(d.url); if (d.url) { deals.push(d); nd++; } } });
+  if (Array.isArray(b.watchlist)) b.watchlist.forEach(w => { if (w && w.query && !watch.some(x => x.id === w.id) && watch.length < 12) watch.push(w); });
+  saveReports(); saveDeals(); saveWatch();
+  return 'Added ' + nr + ' price check' + (nr === 1 ? '' : 's') + ' and ' + nd + ' deal' + (nd === 1 ? '' : 's') + '. Existing items were kept.';
+}
+
+/* ============ page: guide ============ */
+function pageGuide() {
+  const root = h('div', { class: 'stack' });
+  root.append(h('section', { class: 'lead' }, h('h1', null, 'How FlipScout works'), h('p', null, 'FlipScout is a small research desk for people who buy and resell. An AI agent finds the comparable sales. This page checks them, does the math and keeps the history.')));
+  root.append(h('section', { class: 'card prose' },
+    h('h2', null, 'Price check'),
+    h('ol', null, h('li', null, 'Describe the item. Exact details matter.'), h('li', null, 'Copy the research prompt into an AI tool that can search the web.'), h('li', null, 'Paste the JSON answer back. FlipScout reads the comps, leaves out outliers and wrong variants, and works out a quick sale, list and patient price.'), h('li', null, 'Enter what you paid to see the profit and a rating, or read the most you should pay to still get a Good or Great flip.')),
+    h('h2', null, 'Deal feed'),
+    h('p', null, 'Add the things you flip to the watchlist and make a scan prompt. The agent returns current listings priced under their resale value. FlipScout recalculates profit, checks each estimate against the agent\'s own evidence, and lets you filter, save, dismiss or mark deals as bought. You do the buying yourself.'),
+    h('h2', null, 'Why the prompt is so strict'),
+    h('p', null, 'The prompt fixes the JSON shape, forbids guessing, and makes the AI label every price as sold or asking. That is what lets this page validate the answer instead of trusting it.'),
+    h('h2', null, 'Limits to know about'),
+    h('ul', null,
+      h('li', null, 'Sold prices are the real signal, but many sites hide them. When the AI only finds asking prices, confidence drops to Low and a discount is applied.'),
+      h('li', null, 'The AI can pick the wrong variant or invent a listing. Open a few links and tick "Checked".'),
+      h('li', null, 'Fee rates and shipping costs are assumptions you can edit in Settings.'),
+      h('li', null, 'Furniture is experimental because it sells locally with little public data.'),
+      h('li', null, 'Results are estimates, not financial advice. Nothing here buys or sells for you.')),
+    h('h2', null, 'Privacy'),
+    h('p', null, 'There is no account and no server. Your watchlist, history and settings are stored in this browser. Keep addresses and other personal details out of prompts. Pasted data is shown as plain text and only http or https links are made clickable.'),
+    h('h2', null, 'Run it on a schedule'),
+    h('p', null, 'Save the scan prompt as a scheduled task in your AI tool so it runs daily, then paste the newest result into the Deal feed. The page cannot be written to by an agent on its own, so that last step is manual.')));
+  return root;
+}
+
+/* ============ boot ============ */
+window.FlipScout = { parseLooseJson, validateResearch, validateDeals, mergeDeals, analyze, dealMetrics, rate, maxBuy, calcAt, feeFor, buildResearchPrompt, buildDealsPrompt, sampleResearch, sampleDeals, purge, route, restoreBackup,
+  get state() { return { S, reports, deals, watch, draft, filters, ui }; }, setReports(r) { reports = r; }, setDeals(d) { deals = d; } };
+if (!canPersist) $('#banner').append(h('div', { class: 'wrap', style: 'padding-bottom:0' }, h('div', { class: 'notice warn' }, 'Browser storage is blocked, so nothing will be saved after this tab closes. Use Settings to download a backup.')));
+window.addEventListener('hashchange', route);
+route();
+})();
+</script>
+</body>
+</html>
